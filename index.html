@@ -1,0 +1,5875 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<!-- Erzeugt von tools/bundle.mjs. Nicht von Hand ändern,
+     sondern src/index.html, css/, js/ oder data-src/ bearbeiten
+     und anschliessend `npm run build` ausführen. -->
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>SeeRecht — Schifffahrtsrecht</title>
+<meta name="description" content="Übungsprogramm für den theoretischen Teil Schifffahrtsrecht des Sportseeschifferscheins.">
+<meta name="theme-color" content="#0A121C">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/icon-192.png" sizes="192x192" type="image/png">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<style>
+/* ==========================================================================
+   KVR-Trainer
+   Farbwelt: Positionslichter bei Nacht. Backbordrot, Steuerbordgrün,
+   Topplichtweiß auf Nachtsee. Zahlen laufen durchgehend im Monospace —
+   sie sind hier Messwerte, kein Fließtext.
+   ========================================================================== */
+
+:root{
+  --sea-900:#0A121C;
+  --sea-850:#0E1927;
+  --sea-800:#132335;
+  --sea-700:#1B3149;
+  --line:#25405C;
+  --line-soft:#1A2C40;
+
+  --fog:#C6D3E0;
+  --fog-dim:#7E93A9;
+  --white-light:#F1F6FB;
+
+  --stbd:#3CC28C;         /* Steuerbord: richtig */
+  --stbd-dim:#16382C;
+  --port:#E8555E;         /* Backbord: falsch */
+  --port-dim:#3D1A20;
+  --brass:#D8A544;        /* neutral, übersprungen, Hinweise */
+  --brass-dim:#3A2E14;
+
+  --r:14px;
+  --tap:44px;
+
+  --mono:ui-monospace,"SF Mono","Cascadia Mono","Roboto Mono",Menlo,Consolas,monospace;
+  --sans:system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",sans-serif;
+}
+
+*{box-sizing:border-box}
+/* Muss vor allen display-Regeln stehen: sonst fangen ausgeblendete
+   Overlays (display:flex) weiterhin Klicks ab. */
+[hidden]{display:none!important}
+html,body{margin:0;padding:0}
+body{
+  background:var(--sea-900);
+  color:var(--fog);
+  font-family:var(--sans);
+  font-size:16px;
+  line-height:1.5;
+  -webkit-text-size-adjust:100%;
+  padding-bottom:env(safe-area-inset-bottom);
+  overflow-wrap:break-word;
+}
+.mono{font-family:var(--mono);font-variant-numeric:tabular-nums}
+.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
+
+/* Eigener Name, damit die Klasse nicht mit dem Modifikator .verdict.skip kollidiert. */
+.skiplink{position:absolute;left:-9999px;top:0;background:var(--brass);color:#1A1204;padding:10px 14px;z-index:60;border-radius:0 0 8px 0}
+.skiplink:focus{left:0}
+
+:focus-visible{outline:2px solid var(--brass);outline-offset:2px;border-radius:6px}
+
+/* ---------- Kopfzeile ---------- */
+.top{position:sticky;top:0;z-index:30;background:var(--sea-900);padding-top:env(safe-area-inset-top)}
+.top-row{display:flex;align-items:center;gap:6px;padding:8px 10px}
+.brand{flex:1;min-width:0;display:flex;flex-direction:column;gap:1px;padding-left:4px}
+.brand-name{font-size:.82rem;font-weight:650;letter-spacing:.10em;text-transform:uppercase;color:var(--white-light)}
+.crumb{font-size:.72rem;color:var(--fog-dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+/* Signatur: die drei Positionslichter als Horizontlinie */
+.horizon{display:flex;height:2px}
+.horizon i{flex:1}
+.horizon .port{background:linear-gradient(90deg,var(--port),rgba(232,85,94,.15))}
+.horizon .mast{background:rgba(241,246,251,.30);flex:.5}
+.horizon .stbd{background:linear-gradient(90deg,rgba(60,194,140,.15),var(--stbd))}
+
+.icon-btn{
+  min-width:var(--tap);min-height:var(--tap);
+  display:grid;place-items:center;
+  background:none;border:0;color:var(--fog-dim);cursor:pointer;border-radius:10px;padding:0;
+}
+.icon-btn:hover{color:var(--white-light);background:var(--sea-800)}
+.icon-btn svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+
+/* ---------- Layout ---------- */
+main{max-width:640px;margin:0 auto;padding:20px 16px 96px}
+.screen{animation:rise .28s ease both}
+@keyframes rise{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+
+.h-display{
+  font-size:clamp(2rem,9vw,2.9rem);line-height:1.03;margin:8px 0 12px;
+  color:var(--white-light);font-weight:680;letter-spacing:-.025em;
+}
+.h-section{font-size:1.18rem;margin:0;color:var(--white-light);font-weight:640;letter-spacing:-.01em}
+.lede{color:var(--fog-dim);margin:0 0 26px;font-size:.95rem}
+.eyebrow{
+  font-size:.68rem;letter-spacing:.16em;text-transform:uppercase;
+  color:var(--fog-dim);margin:0 0 10px;font-weight:640;
+}
+
+/* ---------- Auswahlkacheln ---------- */
+.choices{display:grid;gap:8px;margin-bottom:28px}
+.choices.row{grid-template-columns:repeat(3,1fr)}
+.choice{
+  display:flex;flex-direction:column;gap:3px;text-align:left;
+  min-height:var(--tap);padding:13px 15px;
+  background:var(--sea-850);border:1px solid var(--line-soft);border-radius:var(--r);
+  color:var(--fog);cursor:pointer;font:inherit;transition:border-color .15s,background .15s;
+}
+.choices.row .choice{align-items:center;text-align:center;padding:12px 6px}
+.choice:hover{border-color:var(--line)}
+.choice[aria-checked="true"]{border-color:var(--stbd);background:var(--sea-800)}
+.choice-title{color:var(--white-light);font-weight:620;font-size:.98rem}
+.choices.row .choice-title{font-family:var(--mono);font-size:1.05rem}
+.choice-sub{font-size:.8rem;color:var(--fog-dim);line-height:1.35}
+
+/* ---------- Knöpfe ---------- */
+.cta{
+  display:block;width:100%;min-height:52px;margin-top:8px;
+  background:var(--stbd);color:#04150E;border:0;border-radius:var(--r);
+  font:inherit;font-weight:680;font-size:1rem;cursor:pointer;transition:filter .15s;
+}
+.cta:hover{filter:brightness(1.08)}
+.cta:disabled{opacity:.45;cursor:not-allowed}
+.cta.narrow{width:auto;padding:0 26px;margin:0}
+.ghost{
+  display:block;width:100%;min-height:var(--tap);margin-top:8px;
+  background:none;color:var(--fog-dim);border:1px solid var(--line-soft);border-radius:var(--r);
+  font:inherit;font-size:.92rem;cursor:pointer;
+}
+.ghost:hover{color:var(--white-light);border-color:var(--line)}
+.ghost.danger:hover{color:var(--port);border-color:var(--port)}
+
+/* ---------- Fortschrittsbalken der Runde ---------- */
+.meter{height:3px;background:var(--line-soft);border-radius:2px;overflow:hidden;margin-bottom:22px}
+.meter i{display:block;height:100%;background:var(--stbd);width:0;transition:width .3s ease}
+
+/* ---------- Fragekarte ---------- */
+.card{background:var(--sea-850);border:1px solid var(--line-soft);border-radius:var(--r);padding:22px 18px}
+
+/* Regelnummer als Rumpfnummer */
+.plate{
+  font-family:var(--mono);font-size:clamp(3.2rem,17vw,4.6rem);line-height:1;
+  color:var(--white-light);font-weight:600;letter-spacing:-.04em;margin:0;
+}
+.plate-label{font-size:.72rem;letter-spacing:.16em;text-transform:uppercase;color:var(--fog-dim);margin:0 0 4px}
+.q-name{font-size:clamp(1.35rem,5.5vw,1.8rem);line-height:1.2;color:var(--white-light);font-weight:640;margin:0;letter-spacing:-.015em}
+.q-context{margin:10px 0 0;font-size:.85rem;color:var(--brass)}
+
+.answer-area{margin-top:22px}
+input#answer,textarea#dictate-input{
+  width:100%;min-height:52px;padding:12px 14px;
+  background:var(--sea-900);border:1px solid var(--line);border-radius:10px;
+  color:var(--white-light);font:inherit;font-size:1.05rem;
+}
+input#answer{font-family:var(--mono);font-size:1.2rem}
+input#answer.text-mode{font-family:var(--sans);font-size:1rem}
+input#answer::placeholder,textarea#dictate-input::placeholder{color:#5B6E82}
+input#answer:focus,textarea#dictate-input:focus{border-color:var(--stbd);outline:none}
+textarea#dictate-input{font-size:.95rem;resize:vertical;margin-top:10px}
+
+/* ---------- Rückmeldung ---------- */
+.verdict{
+  display:flex;align-items:flex-start;gap:12px;
+  margin-top:14px;padding:14px 12px 14px 14px;
+  border:1px solid var(--line-soft);border-radius:var(--r);background:var(--sea-850);
+}
+.verdict.ok{border-color:var(--stbd);background:linear-gradient(var(--stbd-dim),var(--sea-850))}
+.verdict.no{border-color:var(--port);background:linear-gradient(var(--port-dim),var(--sea-850))}
+.verdict.skip{border-color:var(--brass);background:linear-gradient(var(--brass-dim),var(--sea-850))}
+/* Die Lampe ist Sektorlicht, nicht bloßer Punkt */
+.lamp{width:14px;height:14px;border-radius:50%;flex:none;margin-top:4px;background:var(--fog-dim)}
+.verdict.ok .lamp{background:var(--stbd);box-shadow:0 0 0 4px rgba(60,194,140,.16)}
+.verdict.no .lamp{background:var(--port);box-shadow:0 0 0 4px rgba(232,85,94,.16)}
+.verdict.skip .lamp{background:var(--brass);box-shadow:0 0 0 4px rgba(216,165,68,.16)}
+.verdict-text{flex:1;min-width:0}
+.verdict-head{margin:0;font-weight:660;color:var(--white-light);font-size:1rem}
+.verdict-sub{margin:3px 0 0;font-size:.88rem;color:var(--fog-dim)}
+.verdict-sub b{color:var(--fog);font-weight:620}
+
+/* ---------- Ergebnis ---------- */
+.score{font-size:clamp(2.6rem,13vw,3.6rem);line-height:1;color:var(--white-light);margin:4px 0 8px;font-weight:600}
+.misslist{margin:6px 0 24px;display:grid;gap:6px}
+.miss{
+  display:flex;gap:12px;align-items:baseline;padding:11px 13px;
+  background:var(--sea-850);border-left:3px solid var(--port);border-radius:0 10px 10px 0;
+}
+.miss.skipped{border-left-color:var(--brass)}
+.miss b{font-family:var(--mono);color:var(--white-light);flex:none;font-weight:600}
+.miss span{font-size:.9rem;color:var(--fog-dim)}
+
+/* ---------- Fortschrittsraster ---------- */
+.part-block{margin-bottom:26px}
+.part-head{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:9px;gap:10px}
+.part-head h3{margin:0;font-size:.95rem;color:var(--white-light);font-weight:620}
+.part-head span{font-size:.78rem;color:var(--fog-dim);font-family:var(--mono)}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(58px,1fr));gap:7px}
+.tile{
+  aspect-ratio:1;display:grid;place-items:center;gap:1px;
+  background:var(--sea-850);border:1px solid var(--line-soft);border-radius:11px;
+  color:var(--fog-dim);font-family:var(--mono);cursor:pointer;font-size:1.15rem;padding:0;
+}
+.tile b{font-weight:600;color:var(--white-light)}
+.tile small{font-size:.62rem;letter-spacing:.02em}
+.tile.good{border-color:var(--stbd);color:var(--stbd)}
+.tile.mid{border-color:var(--brass);color:var(--brass)}
+.tile.bad{border-color:var(--port);color:var(--port)}
+.legend{display:flex;flex-wrap:wrap;gap:14px;margin:4px 0 22px;font-size:.76rem;color:var(--fog-dim)}
+.legend span{display:flex;align-items:center;gap:6px}
+.legend .sw{width:11px;height:11px;border-radius:3px;border:1px solid var(--line)}
+.legend .sw.good{border-color:var(--stbd);background:rgba(60,194,140,.22)}
+.legend .sw.mid{border-color:var(--brass);background:rgba(216,165,68,.22)}
+.legend .sw.bad{border-color:var(--port);background:rgba(232,85,94,.22)}
+
+/* ---------- Panels ---------- */
+.sheet-wrap{position:fixed;inset:0;z-index:50;display:flex;align-items:flex-end;justify-content:center}
+.sheet-scrim{position:absolute;inset:0;background:rgba(4,9,15,.7);animation:fade .2s ease both}
+@keyframes fade{from{opacity:0}to{opacity:1}}
+.sheet{
+  position:relative;width:100%;max-width:640px;max-height:88vh;
+  background:var(--sea-850);border:1px solid var(--line-soft);border-bottom:0;
+  border-radius:20px 20px 0 0;display:flex;flex-direction:column;
+  animation:slide .26s cubic-bezier(.22,.9,.3,1) both;
+  padding-bottom:env(safe-area-inset-bottom);
+}
+@keyframes slide{from{transform:translateY(14px);opacity:.6}to{transform:none;opacity:1}}
+.sheet-grab{height:22px;flex:none;cursor:pointer;display:grid;place-items:center}
+.sheet-grab::after{content:"";width:38px;height:4px;border-radius:2px;background:var(--line)}
+.sheet-head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;padding:6px 16px 12px;border-bottom:1px solid var(--line-soft)}
+.sheet-body{padding:16px;overflow-y:auto;flex:1;-webkit-overflow-scrolling:touch}
+
+.para{margin:0 0 14px}
+.para-mark{font-family:var(--mono);color:var(--brass);font-weight:600;margin-right:2px}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:5px}
+.chip{
+  font-size:.83rem;padding:5px 10px;border-radius:999px;
+  background:var(--sea-800);border:1px solid var(--line-soft);color:var(--fog);
+}
+.chip.hit{border-color:var(--stbd);color:var(--stbd);background:rgba(60,194,140,.08)}
+.chip.miss{opacity:.55}
+.chip i{font-style:normal;margin-right:5px}
+
+.help-h{color:var(--white-light);font-size:.95rem;margin:22px 0 6px;font-weight:640}
+.help-h:first-child{margin-top:0}
+.sheet-body p{margin:0 0 10px;font-size:.92rem;color:var(--fog-dim)}
+.sheet-body p strong{color:var(--fog)}
+.keyline{border:0;border-top:1px solid var(--line-soft);margin:20px 0}
+
+/* ---------- Diktat ---------- */
+.dictate{border-top:1px solid var(--line-soft);padding:14px 16px 18px;background:var(--sea-800);border-radius:0 0 0 0}
+.dictate-row{display:flex;align-items:center;gap:13px}
+.mic{
+  width:52px;height:52px;flex:none;border-radius:50%;
+  background:var(--sea-700);border:1px solid var(--line);color:var(--fog);
+  display:grid;place-items:center;cursor:pointer;transition:background .15s,color .15s;
+}
+.mic svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+.mic:hover{color:var(--white-light)}
+.mic[data-state="listening"]{background:var(--port);border-color:var(--port);color:#fff;animation:pulse 1.5s ease-in-out infinite}
+.mic[data-state="working"]{background:var(--brass);border-color:var(--brass);color:#1A1204}
+.mic:disabled{opacity:.4;cursor:not-allowed;animation:none}
+@keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(232,85,94,.5)}50%{box-shadow:0 0 0 11px rgba(232,85,94,0)}}
+.dictate-title{margin:0;color:var(--white-light);font-size:.94rem;font-weight:620}
+.dictate-hint{margin:2px 0 0;font-size:.82rem;color:var(--fog-dim)}
+.transcript{
+  margin-top:11px;padding:10px 12px;background:var(--sea-900);
+  border:1px dashed var(--line);border-radius:10px;font-size:.88rem;color:var(--fog-dim);min-height:42px;
+}
+.tally{display:flex;align-items:baseline;gap:9px;margin:13px 0 8px}
+.tally-num{font-family:var(--mono);font-size:1.7rem;color:var(--white-light);font-weight:600;line-height:1}
+.tally-pct{font-family:var(--mono);font-size:.9rem;color:var(--fog-dim)}
+
+/* ---------- Ersteinstieg ---------- */
+.intro-nav{display:flex;gap:10px;justify-content:space-between;align-items:center;padding:0 16px 18px}
+.intro-nav .ghost{width:auto;padding:0 18px;margin:0}
+
+/* ---------- Hinweis unten ---------- */
+.note{
+  position:fixed;left:10px;right:10px;bottom:calc(10px + env(safe-area-inset-bottom));z-index:40;
+  max-width:620px;margin:0 auto;display:flex;align-items:center;gap:8px;
+  background:var(--sea-700);border:1px solid var(--line);border-radius:12px;padding:10px 6px 10px 14px;
+}
+.note p{margin:0;font-size:.83rem;color:var(--fog);flex:1}
+
+.toast{
+  position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom));transform:translateX(-50%);
+  z-index:60;background:var(--sea-700);border:1px solid var(--line);color:var(--white-light);
+  padding:11px 17px;border-radius:999px;font-size:.88rem;animation:fade .2s ease both;max-width:92vw;
+}
+
+@media (min-width:520px){
+  .choices{grid-template-columns:1fr 1fr}
+  .choices.row{grid-template-columns:repeat(3,1fr)}
+  #scope-choices{grid-template-columns:1fr}
+}
+@media (prefers-reduced-motion:reduce){
+  *{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}
+}
+
+/* ==========================================================================
+   Ergänzungen SeeRecht
+   Nur Klassen, die im KVR-Trainer nicht vorkamen. Es werden ausschliesslich
+   die oben definierten Variablen verwendet, keine neuen Farbwerte.
+   ========================================================================== */
+
+/* ---------- Antwortfeld ---------- */
+/* Bewusst an textarea#dictate-input orientiert, nicht am einzeiligen
+   Monospace-Feld: hier wird Fliesstext geschrieben, keine Messwerte. */
+textarea#answer-text{
+  width:100%;min-height:140px;padding:12px 14px;
+  background:var(--sea-900);border:1px solid var(--line);border-radius:10px;
+  color:var(--white-light);font:inherit;font-size:1rem;line-height:1.55;
+  resize:vertical;
+}
+textarea#answer-text::placeholder{color:#5B6E82}
+textarea#answer-text:focus{border-color:var(--stbd);outline:none}
+textarea#answer-text:disabled{opacity:.7;cursor:default}
+
+.hint-note{margin:9px 0 0;font-size:.8rem;color:var(--brass)}
+
+/* ---------- Knopfreihen ---------- */
+.btn-row{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+
+/* ---------- Zwischenüberschriften in der Rückmeldung ---------- */
+.konzept-eyebrow{margin-top:22px}
+.unterthema-block{margin-top:4px}
+
+/* ---------- Suchfeld ---------- */
+input#suche{
+  width:100%;min-height:var(--tap);padding:12px 14px;
+  background:var(--sea-900);border:1px solid var(--line);border-radius:10px;
+  color:var(--white-light);font:inherit;font-size:1rem;
+}
+input#suche::placeholder{color:#5B6E82}
+input#suche:focus{border-color:var(--stbd);outline:none}
+.such-zahl{margin:12px 0 14px;font-size:.8rem;color:var(--fog-dim);font-family:var(--mono)}
+.such-zeile{
+  display:flex;flex-direction:column;gap:4px;text-align:left;width:100%;
+  margin-bottom:8px;padding:13px 15px;
+  background:var(--sea-850);border:1px solid var(--line-soft);border-radius:var(--r);
+  color:var(--fog);cursor:pointer;font:inherit;transition:border-color .15s;
+}
+.such-zeile:hover{border-color:var(--line)}
+.such-zeile span{color:var(--white-light);font-size:.94rem;line-height:1.35}
+.such-zeile small{font-size:.76rem;color:var(--fog-dim);font-family:var(--mono)}
+
+/* ---------- Musterlösung im Panel ---------- */
+.loesung-liste{margin:0 0 14px;padding-left:20px;display:grid;gap:6px}
+.loesung-liste li{font-size:.92rem;color:var(--fog);line-height:1.5}
+.loesung-liste li::marker{color:var(--brass)}
+.sheet-body .para{font-size:.92rem;color:var(--fog)}
+.sheet-body .para.anmerkung{color:var(--brass);font-size:.86rem}
+.loesung-quelle{
+  margin:22px 0 0;padding-top:14px;border-top:1px solid var(--line-soft);
+  font-size:.76rem;color:var(--fog-dim);font-family:var(--mono);
+}
+#loesung-titel{font-size:1rem;line-height:1.3;font-weight:620}
+
+/* ---------- Ergebnisliste ---------- */
+.miss{width:100%;text-align:left;border:0;border-left:3px solid var(--port);cursor:pointer;font:inherit}
+.miss:hover{background:var(--sea-800)}
+
+/* ---------- Fortschrittskacheln ---------- */
+.tile:hover{border-color:var(--line)}
+
+@media (min-width:520px){
+  #modus-choices,#themen-choices,#unterthema-choices{grid-template-columns:1fr 1fr}
+}
+
+/* ---------- Sachverhalt vor der Frage ---------- */
+.sachverhalt{
+  margin:0 0 12px;padding:13px 15px;
+  background:var(--sea-850);border:1px solid var(--line-soft);
+  border-left:3px solid var(--brass);border-radius:0;
+}
+.sachverhalt-label{
+  margin:0 0 5px;font-size:.7rem;letter-spacing:.09em;text-transform:uppercase;
+  color:var(--brass);font-family:var(--mono);
+}
+.sachverhalt-text{margin:0;font-size:.9rem;line-height:1.5;color:var(--fog)}
+.frage-titel{
+  margin:0 0 6px;font-size:.82rem;color:var(--fog-dim);
+  letter-spacing:.02em;
+}
+
+/* ---------- Gegenteilig beantwortete Konzepte ---------- */
+.chip.gegenteil{
+  background:rgba(232,85,94,.14);border-color:var(--port);color:var(--white-light);
+}
+.chip.gegenteil i{color:var(--port)}
+.gegenteil-note{
+  margin:9px 0 0;font-size:.8rem;line-height:1.45;color:var(--fog-dim);
+}
+
+/* ---------- Musterlösung: Frage und Sachverhalt im Panel ---------- */
+.sheet-body .para.loesung-frage{
+  color:var(--white-light);font-size:.94rem;
+  padding-bottom:12px;border-bottom:1px solid var(--line-soft);
+}
+.sheet-body .para.loesung-sachverhalt{
+  color:var(--fog-dim);font-size:.86rem;font-style:italic;
+}
+</style>
+</head>
+<body>
+
+<a class="skiplink" href="#inhalt">Zum Inhalt springen</a>
+
+<header class="top">
+  <div class="top-row">
+    <button class="icon-btn" id="btn-zurueck" type="button" title="Zurück" aria-label="Zurück" hidden>
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg>
+    </button>
+    <span class="brand">
+      <span class="brand-name">SeeRecht</span>
+      <span class="crumb" id="crumb">Schifffahrtsrecht</span>
+    </span>
+    <button class="icon-btn" id="btn-fortschritt" type="button" title="Fortschritt" aria-label="Fortschritt">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 19V10M10 19V5M16 19v-6M22 19H2"/></svg>
+    </button>
+    <button class="icon-btn" id="btn-nachschlagen" type="button" title="Nachschlagen" aria-label="Nachschlagen">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+    </button>
+    <button class="icon-btn" id="btn-einstellungen" type="button" title="Einstellungen" aria-label="Einstellungen">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 00.3 1.9l.1.1a2 2 0 11-2.8 2.8l-.1-.1a1.7 1.7 0 00-1.9-.3 1.7 1.7 0 00-1 1.5v.2a2 2 0 11-4 0v-.1a1.7 1.7 0 00-1.1-1.5 1.7 1.7 0 00-1.9.3l-.1.1a2 2 0 11-2.8-2.8l.1-.1a1.7 1.7 0 00.3-1.9 1.7 1.7 0 00-1.5-1H2a2 2 0 110-4h.1A1.7 1.7 0 003.6 9a1.7 1.7 0 00-.3-1.9l-.1-.1a2 2 0 112.8-2.8l.1.1a1.7 1.7 0 001.9.3H8a1.7 1.7 0 001-1.5V3a2 2 0 114 0v.1a1.7 1.7 0 001 1.5 1.7 1.7 0 001.9-.3l.1-.1a2 2 0 112.8 2.8l-.1.1a1.7 1.7 0 00-.3 1.9V9a1.7 1.7 0 001.5 1h.2a2 2 0 110 4h-.1a1.7 1.7 0 00-1.5 1z"/></svg>
+    </button>
+  </div>
+  <div class="horizon" aria-hidden="true"><i class="port"></i><i class="mast"></i><i class="stbd"></i></div>
+</header>
+
+<main id="inhalt">
+
+  <!-- ---------- Start ---------- -->
+  <section class="screen" id="screen-start">
+    <p class="eyebrow">Sportseeschifferschein</p>
+    <h1 class="h-display">Schifffahrtsrecht üben</h1>
+    <p class="lede" id="start-lede">48 Prüfungsfragen aus vier Themengebieten. Antwort frei formulieren, danach mit der Musterlösung abgleichen.</p>
+
+    <p class="eyebrow">Übungsart</p>
+    <div class="choices" id="modus-choices" role="radiogroup" aria-label="Übungsart"></div>
+
+    <button class="cta" id="btn-start" type="button">Übung beginnen</button>
+    <button class="ghost" id="btn-fortschritt-2" type="button">Fortschritt ansehen</button>
+  </section>
+
+  <!-- ---------- Themenauswahl ---------- -->
+  <section class="screen" id="screen-themen" hidden>
+    <p class="eyebrow">Schritt 2 von 2</p>
+    <h2 class="h-section">Themengebiet wählen</h2>
+    <p class="lede">Zahl in Klammern: bearbeitete Fragen von insgesamt.</p>
+    <div class="choices" id="themen-choices" role="radiogroup" aria-label="Themengebiet"></div>
+    <div class="unterthema-block" id="unterthema-block" hidden>
+      <p class="eyebrow">Unterthema (freiwillig)</p>
+      <div class="choices" id="unterthema-choices" role="radiogroup" aria-label="Unterthema"></div>
+    </div>
+    <button class="cta" id="btn-themen-start" type="button" disabled>Übung beginnen</button>
+  </section>
+
+  <!-- ---------- Frage ---------- -->
+  <section class="screen" id="screen-frage" hidden>
+    <div class="meter"><i id="meter-fill"></i></div>
+
+    <div class="sachverhalt" id="sachverhalt" hidden>
+      <p class="sachverhalt-label">Sachverhalt<span id="sachverhalt-marke" hidden> · rekonstruiert</span></p>
+      <p class="sachverhalt-text" id="sachverhalt-text"></p>
+    </div>
+
+    <div class="plate">
+      <p class="plate-label" id="frage-label">Frage</p>
+      <p class="frage-titel" id="frage-titel"></p>
+      <h2 class="q-name" id="frage-text"></h2>
+      <p class="q-context" id="frage-anmerkung" hidden></p>
+    </div>
+
+    <div class="answer-area">
+      <label class="sr-only" for="answer-text">Ihre Antwort</label>
+      <textarea id="answer-text" rows="6" placeholder="Antwort frei formulieren. Stichworte genügen, Begründungen zählen."></textarea>
+      <p class="hint-note" id="hinweis-note" hidden></p>
+      <div class="chips" id="hinweis-chips"></div>
+
+      <button class="cta" id="btn-pruefen" type="button">Antwort prüfen</button>
+      <div class="btn-row">
+        <button class="ghost" id="btn-hinweis" type="button">Hinweis</button>
+        <button class="ghost" id="btn-aufloesen" type="button">Auflösen</button>
+      </div>
+      <div class="btn-row">
+        <button class="ghost" id="btn-markieren" type="button">Merken</button>
+        <button class="ghost" id="btn-ueberspringen" type="button">Überspringen</button>
+      </div>
+    </div>
+
+    <!-- Rückmeldung -->
+    <div id="rueckmeldung" hidden>
+      <div class="verdict" id="verdict">
+        <span class="lamp" aria-hidden="true"></span>
+        <span class="verdict-text">
+          <p class="verdict-head" id="verdict-head"></p>
+          <p class="verdict-sub" id="verdict-sub"></p>
+        </span>
+      </div>
+
+      <div id="gegenteil-block" hidden>
+        <p class="eyebrow konzept-eyebrow">Gegenteilig beantwortet</p>
+        <div class="chips" id="gegenteil-chips"></div>
+        <p class="gegenteil-note">Hier steht in der Antwort das Gegenteil der Musterlösung. Solche Aussagen sind in der Prüfung nicht bloss unvollständig, sondern falsch.</p>
+      </div>
+
+      <p class="eyebrow konzept-eyebrow">Geforderte Konzepte</p>
+      <div class="chips" id="konzept-chips"></div>
+
+      <p class="eyebrow konzept-eyebrow">Wie war es wirklich?</p>
+      <div class="choices row" id="selbst-choices" role="radiogroup" aria-label="Selbstbewertung"></div>
+
+      <button class="cta" id="btn-weiter" type="button">Weiter</button>
+      <button class="ghost" id="btn-loesung" type="button">Musterlösung ansehen</button>
+    </div>
+  </section>
+
+  <!-- ---------- Ergebnis ---------- -->
+  <section class="screen" id="screen-ergebnis" hidden>
+    <p class="eyebrow">Runde beendet</p>
+    <h2 class="h-section" id="ergebnis-titel">Ergebnis</h2>
+    <p class="score mono" id="ergebnis-score">0 %</p>
+    <div class="tally">
+      <span class="tally-num" id="ergebnis-zahl">0/0</span>
+      <span class="tally-pct" id="ergebnis-detail"></span>
+    </div>
+    <p class="eyebrow" id="miss-eyebrow" hidden>Noch einmal ansehen</p>
+    <div class="misslist" id="misslist"></div>
+    <button class="cta" id="btn-nochmal" type="button">Neue Runde</button>
+    <button class="ghost" id="btn-zum-start" type="button">Zur Startseite</button>
+  </section>
+
+  <!-- ---------- Fortschritt ---------- -->
+  <section class="screen" id="screen-fortschritt" hidden>
+    <p class="eyebrow">Lernstand</p>
+    <h2 class="h-section">Fortschritt</h2>
+    <p class="lede" id="fortschritt-lede"></p>
+    <div class="legend">
+      <span><i class="sw good"></i>überwiegend richtig</span>
+      <span><i class="sw mid"></i>teilweise</span>
+      <span><i class="sw bad"></i>noch offen</span>
+    </div>
+    <div id="fortschritt-inhalt"></div>
+    <button class="ghost" id="btn-fortschritt-zurueck" type="button">Zurück</button>
+  </section>
+
+  <!-- ---------- Nachschlagen ---------- -->
+  <section class="screen" id="screen-nachschlagen" hidden>
+    <p class="eyebrow">Ohne Abfrage</p>
+    <h2 class="h-section">Nachschlagen</h2>
+    <p class="lede">Sucht in Fragen, Musterlösungen und Konzepten.</p>
+    <label class="sr-only" for="suche">Suchbegriff</label>
+    <input id="suche" type="search" placeholder="z. B. Treibanker, Squat, Leitner" autocomplete="off">
+    <p class="such-zahl" id="such-zahl"></p>
+    <div id="such-treffer"></div>
+  </section>
+
+</main>
+
+<!-- ---------- Panel: Musterlösung ---------- -->
+<div class="sheet-wrap" id="sheet-loesung" hidden>
+  <div class="sheet-scrim" data-schliessen></div>
+  <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="loesung-titel">
+    <button class="sheet-grab" type="button" data-schliessen aria-label="Schliessen"></button>
+    <div class="sheet-head">
+      <div>
+        <p class="plate-label">Musterlösung</p>
+        <h3 class="h-section" id="loesung-titel">Frage</h3>
+      </div>
+      <button class="icon-btn" type="button" data-schliessen aria-label="Schliessen">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
+      </button>
+    </div>
+    <div class="sheet-body" id="loesung-body"></div>
+  </div>
+</div>
+
+<!-- ---------- Panel: Einstellungen ---------- -->
+<div class="sheet-wrap" id="sheet-einstellungen" hidden>
+  <div class="sheet-scrim" data-schliessen></div>
+  <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="einstellungen-titel">
+    <button class="sheet-grab" type="button" data-schliessen aria-label="Schliessen"></button>
+    <div class="sheet-head">
+      <div>
+        <p class="plate-label">Einstellungen</p>
+        <h3 class="h-section" id="einstellungen-titel">Bewertung und Daten</h3>
+      </div>
+      <button class="icon-btn" type="button" data-schliessen aria-label="Schliessen">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
+      </button>
+    </div>
+    <div class="sheet-body">
+      <p class="help-h">Strenge der Bewertung</p>
+      <div class="choices row" id="strenge-choices" role="radiogroup" aria-label="Strenge"></div>
+      <p>Die Bewertung sucht Fachbegriffe und Wortfolgen. Sie ersetzt keinen Prüfer, deshalb entscheidet die Selbstbewertung nach jeder Frage über den Lernstand.</p>
+
+      <hr class="keyline">
+      <p class="help-h">Lernstand</p>
+      <p id="speicher-hinweis"></p>
+      <button class="ghost" id="btn-export" type="button">Lernstand ausgeben</button>
+      <button class="ghost" id="btn-import" type="button">Lernstand einlesen</button>
+      <input type="file" id="import-datei" accept="application/json,.json" hidden>
+      <button class="ghost danger" id="btn-reset" type="button">Lernstand löschen</button>
+
+      <hr class="keyline">
+      <p class="help-h">Zur Datengrundlage</p>
+      <p id="quelle-hinweis"></p>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast" hidden></div>
+
+<script id="fragen-daten" type="application/json">
+{
+ "version": 1,
+ "stand": "2026",
+ "quelle": "SegelnAG, Prüfungsfragen SSS/SHS Schifffahrtsrecht, Stand 2026",
+ "hinweis": "Die Dateien 7_3 bis 7_6 fehlen im Materialsatz, daher vier statt acht Themengebiete.",
+ "themengebiete": [
+  {
+   "id": "recht-allgemein",
+   "titel": "Schifffahrtsrecht allgemein",
+   "datei": "7_1_Lernkontrolle_Recht_Allgemein.pdf",
+   "unterthemen": [
+    {
+     "id": "verantwortung",
+     "titel": "Verantwortung des Schiffsführers"
+    },
+    {
+     "id": "haftung",
+     "titel": "Haftung und Schadensersatz"
+    },
+    {
+     "id": "versicherung",
+     "titel": "Versicherung"
+    },
+    {
+     "id": "strafrecht",
+     "titel": "Strafrechtliche Verantwortung"
+    }
+   ],
+   "anzahl": 9
+  },
+  {
+   "id": "solas-papiere-logbuch",
+   "titel": "SOLAS, Schiffspapiere, Logbuch",
+   "datei": "7_2_Lernkontrolle_Logbuch__SOLAS__Papiere.pdf",
+   "unterthemen": [
+    {
+     "id": "solas-kapitel-v",
+     "titel": "SOLAS Kapitel V"
+    },
+    {
+     "id": "pflichten",
+     "titel": "Melde- und Hilfeleistungspflichten"
+    },
+    {
+     "id": "schiffspapiere",
+     "titel": "Schiffspapiere"
+    },
+    {
+     "id": "logbuch",
+     "titel": "Logbuchführung"
+    }
+   ],
+   "anzahl": 13
+  },
+  {
+   "id": "sug",
+   "titel": "SUG — Seesicherheits-Untersuchungs-Gesetz",
+   "datei": "7_7_Lernkontrolle_SUG.pdf",
+   "unterthemen": [
+    {
+     "id": "seeunfall",
+     "titel": "Der Seeunfallbegriff"
+    },
+    {
+     "id": "bsu",
+     "titel": "BSU und Sicherheitsuntersuchung"
+    },
+    {
+     "id": "meldepflicht",
+     "titel": "Meldepflicht"
+    },
+    {
+     "id": "seeamtsverfahren",
+     "titel": "Seeamtsverfahren"
+    },
+    {
+     "id": "fallbeispiel",
+     "titel": "Fallbeispiel"
+    }
+   ],
+   "anzahl": 10
+  },
+  {
+   "id": "umweltschutz",
+   "titel": "Umweltschutz",
+   "datei": "7_8_Lernkontrolle_Umweltschutz.pdf",
+   "unterthemen": [
+    {
+     "id": "praxis",
+     "titel": "Teil A — Praxisbezogene Aufgaben"
+    },
+    {
+     "id": "theorie",
+     "titel": "Teil B — Theoretische Lernkontrolle"
+    }
+   ],
+   "anzahl": 16
+  }
+ ],
+ "fragen": [
+  {
+   "themengebiet": "recht-allgemein",
+   "id": "recht-01",
+   "unterthema": "verantwortung",
+   "quellnummer": "Frage 1",
+   "titel": "Verantwortung des Schiffsführers für die Sicherheit an Bord",
+   "frage": "Welche grundsätzlichen Pflichten hat der Schiffsführer im Hinblick auf den Schutz und die Sicherheit aller an Bord befindlichen Personen?",
+   "musterloesung": {
+    "typ": "fliesstext",
+    "bloecke": [
+     {
+      "text": "Der Schiffsführer trägt die Gesamtverantwortung für die Sicherheit an Bord."
+     },
+     {
+      "text": "Er hat den Schiffsbetrieb so zu organisieren und zu überwachen, dass Gefahren für Besatzung und Mitsegler vermieden oder auf ein unvermeidbares Maß reduziert werden."
+     },
+     {
+      "text": "Hierzu zählen insbesondere eine umsichtig geführte Schiffsführung, klare Anweisungen, die Anpassung des Verhaltens an Wetter- und Seegangsverhältnisse sowie die Sicherstellung, dass Sicherheitsausrüstung vorhanden, funktionsfähig und bekannt ist."
+     }
+    ]
+   },
+   "konzepte": [
+    {
+     "id": "k1",
+     "label": "Gesamtverantwortung für die Sicherheit an Bord",
+     "pflicht": true,
+     "treffer": [
+      "gesamtverantwortung",
+      "trägt die verantwortung",
+      "verantwortlich für die sicherheit",
+      "gesamtverantwortlich"
+     ]
+    },
+    {
+     "id": "k2",
+     "label": "Schiffsbetrieb organisieren und überwachen",
+     "pflicht": true,
+     "treffer": [
+      "organisieren",
+      "überwachen",
+      "schiffsbetrieb",
+      "organisation des betriebs"
+     ]
+    },
+    {
+     "id": "k3",
+     "label": "Gefahren vermeiden oder auf ein unvermeidbares Mass reduzieren",
+     "pflicht": true,
+     "treffer": [
+      "gefahren vermeiden",
+      "unvermeidbares mass",
+      "gefahren reduzieren",
+      "risiken minimieren"
+     ]
+    },
+    {
+     "id": "k4",
+     "label": "Umsichtige Schiffsführung und klare Anweisungen",
+     "treffer": [
+      "umsichtig",
+      "klare anweisungen",
+      "klare kommandos",
+      "sorgfältige schiffsführung"
+     ]
+    },
+    {
+     "id": "k5",
+     "label": "Verhalten an Wetter und Seegang anpassen",
+     "treffer": [
+      "wetter",
+      "seegang",
+      "anpassung des verhaltens",
+      "witterung"
+     ]
+    },
+    {
+     "id": "k6",
+     "label": "Sicherheitsausrüstung vorhanden, funktionsfähig und bekannt",
+     "pflicht": true,
+     "treffer": [
+      "sicherheitsausrüstung",
+      "funktionsfähig",
+      "einweisung",
+      "bekannt",
+      "rettungsmittel"
+     ]
+    }
+   ],
+   "soll": 6
+  },
+  {
+   "themengebiet": "recht-allgemein",
+   "id": "recht-02",
+   "unterthema": "verantwortung",
+   "quellnummer": "Frage 2",
+   "titel": "Notfallorganisation an Bord",
+   "frage": "Welche Bedeutung haben festgelegte Not- und Sicherheitsaufgaben für die Schiffsführung?",
+   "musterloesung": {
+    "typ": "fliesstext",
+    "bloecke": [
+     {
+      "text": "Festgelegte Not- und Sicherheitsaufgaben dienen der strukturierten Organisation von Maßnahmen in Gefahrensituationen."
+     },
+     {
+      "text": "Sie stellen sicher, dass im Notfall jede Person ihre Aufgabe kennt und ohne Zeitverlust handeln kann, wodurch Schäden für Menschen und Schiff begrenzt werden."
+     }
+    ]
+   },
+   "konzepte": [
+    {
+     "id": "k1",
+     "label": "Strukturierte Organisation in Gefahrensituationen",
+     "pflicht": true,
+     "treffer": [
+      "strukturiert",
+      "organisation",
+      "geordnet",
+      "gefahrensituation",
+      "notrolle",
+      "sicherheitsrolle"
+     ]
+    },
+    {
+     "id": "k2",
+     "label": "Jede Person kennt ihre Aufgabe",
+     "pflicht": true,
+     "treffer": [
+      "jede person kennt",
+      "jeder kennt seine aufgabe",
+      "jeder weiss was zu tun",
+      "aufgaben verteilt",
+      "zuständigkeit"
+     ]
+    },
+    {
+     "id": "k3",
+     "label": "Handeln ohne Zeitverlust",
+     "pflicht": true,
+     "treffer": [
+      "ohne zeitverlust",
+      "sofort handeln",
+      "keine zeit verlieren",
+      "schnell handeln",
+      "ohne verzögerung"
+     ],
+     "verneinend": true
+    },
+    {
+     "id": "k4",
+     "label": "Schäden für Menschen und Schiff werden begrenzt",
+     "treffer": [
+      "schäden begrenzt",
+      "schaden begrenzen",
+      "folgen begrenzen",
+      "panik vermeiden"
+     ]
+    }
+   ],
+   "soll": 3
+  },
+  {
+   "themengebiet": "recht-allgemein",
+   "id": "recht-03",
+   "unterthema": "haftung",
+   "quellnummer": "Frage 3",
+   "titel": "Verantwortung bei unsachgemässem Verhalten von Besatzungsmitgliedern",
+   "frage": "Wie ist die Verantwortlichkeit zu beurteilen, wenn sich ein Besatzungsmitglied bei widrigen Wetterbedingungen unsicher an Deck bewegt und sich dabei verletzt?",
+   "musterloesung": {
+    "typ": "fliesstext",
+    "bloecke": [
+     {
+      "text": "Grundsätzlich liegt die Verantwortung für die Sicherheit an Bord beim Schiffsführer."
+     },
+     {
+      "text": "Handelt ein Besatzungsmitglied jedoch eigenverantwortlich, trotz erkennbarer Gefahren und ohne Weisung des Schiffsführers, kann ein Mitverschulden vorliegen, das die Haftung des Schiffsführers mindert oder ausschließt."
+     }
+    ]
+   },
+   "konzepte": [
+    {
+     "id": "k1",
+     "label": "Grundsätzlich haftet der Schiffsführer",
+     "pflicht": true,
+     "treffer": [
+      "grundsätzlich",
+      "schiffsführer",
+      "beim schiffsführer",
+      "skipper"
+     ]
+    },
+    {
+     "id": "k2",
+     "label": "Eigenverantwortliches Handeln des Besatzungsmitglieds",
+     "pflicht": true,
+     "treffer": [
+      "eigenverantwortlich",
+      "auf eigene faust",
+      "selbst entschieden",
+      "eigenmächtig"
+     ]
+    },
+    {
+     "id": "k3",
+     "label": "Trotz erkennbarer Gefahr und ohne Weisung",
+     "treffer": [
+      "erkennbare gefahr",
+      "ohne weisung",
+      "ohne anweisung",
+      "trotz warnung"
+     ],
+     "verneinend": true
+    },
+    {
+     "id": "k4",
+     "label": "Mitverschulden",
+     "pflicht": true,
+     "treffer": [
+      "mitverschulden",
+      "eigenverschulden",
+      "mitverantwortung"
+     ]
+    },
+    {
+     "id": "k5",
+     "label": "Haftung wird gemindert oder ausgeschlossen",
+     "pflicht": true,
+     "treffer": [
+      "mindert",
+      "ausschliesst",
+      "haftung entfällt",
+      "reduziert die haftung",
+      "ausgeschlossen"
+     ]
+    }
+   ],
+   "soll": 5
+  },
+  {
+   "themengebiet": "recht-allgemein",
+   "id": "recht-04",
+   "unterthema": "verantwortung",
+   "quellnummer": "Frage 4",
+   "titel": "Verantwortlichkeit anderer Personen für Schiffsführung",
+   "frage": "Unter welchen Umständen können neben dem Schiffsführer auch andere Personen für verkehrsrechtliche Verstösse auf einem Schiff verantwortlich sein?",
+   "logik": "kumulativ",
+   "musterloesung": {
+    "typ": "fliesstext",
+    "bloecke": [
+     {
+      "text": "Andere Personen können verantwortlich sein, wenn sie tatsächlich Einfluss auf die Schiffsführung nehmen oder eigenständig Entscheidungen treffen, die für Navigation oder Manöver maßgeblich sind."
+     },
+     {
+      "text": "Voraussetzung ist, dass sie die entsprechende Sachkunde besitzen und ihr Handeln ursächlich für den Verstoß war."
+     }
+    ]
+   },
+   "konzepte": [
+    {
+     "id": "k1",
+     "label": "Tatsächlicher Einfluss auf die Schiffsführung",
+     "pflicht": true,
+     "treffer": [
+      "einfluss",
+      "tatsächlich einfluss",
+      "eingegriffen",
+      "mitentschieden"
+     ]
+    },
+    {
+     "id": "k2",
+     "label": "Eigenständige Entscheidungen zu Navigation oder Manöver",
+     "pflicht": true,
+     "treffer": [
+      "eigenständige entscheidung",
+      "entscheidungen treffen",
+      "navigation",
+      "manöver",
+      "massgeblich"
+     ]
+    },
+    {
+     "id": "k3",
+     "label": "Entsprechende Sachkunde",
+     "pflicht": true,
+     "treffer": [
+      "sachkunde",
+      "fachkunde",
+      "qualifikation",
+      "befähigung",
+      "kenntnisse"
+     ]
+    },
+    {
+     "id": "k4",
+     "label": "Handeln war ursächlich für den Verstoss",
+     "pflicht": true,
+     "treffer": [
+      "ursächlich",
+      "kausal",
+      "hat den verstoss verursacht",
+      "ursache"
+     ]
+    }
+   ],
+   "soll": 4
+  },
+  {
+   "themengebiet": "recht-allgemein",
+   "id": "recht-05",
+   "unterthema": "verantwortung",
+   "quellnummer": "Frage 5",
+   "titel": "Mehrere erfahrene Personen an Bord",
+   "frage": "Wie wird die Verantwortlichkeit bestimmt, wenn sich mehrere erfahrene und qualifizierte Personen an Bord befinden?",
+   "musterloesung": {
+    "typ": "fliesstext",
+    "bloecke": [
+     {
+      "text": "Verantwortlich ist die Person, die die tatsächliche Führung des Schiffes ausübt und die maßgeblichen Entscheidungen trifft."
+     },
+     {
+      "text": "Eine gemeinsame Verantwortung mehrerer Personen kommt nur dann in Betracht, wenn die Schiffsführung nach außen eindeutig gemeinsam wahrgenommen wird."
+     }
+    ]
+   },
+   "konzepte": [
+    {
+     "id": "k1",
+     "label": "Wer die tatsächliche Führung ausübt",
+     "pflicht": true,
+     "treffer": [
+      "tatsächliche führung",
+      "tatsächlich führt",
+      "wer führt",
+      "faktische führung"
+     ]
+    },
+    {
+     "id": "k2",
+     "label": "Und die massgeblichen Entscheidungen trifft",
+     "pflicht": true,
+     "treffer": [
+      "massgebliche entscheidung",
+      "entscheidungen trifft",
+      "wer entscheidet"
+     ]
+    },
+    {
+     "id": "k3",
+     "label": "Gemeinsame Verantwortung nur bei nach aussen erkennbar gemeinsamer Führung",
+     "pflicht": true,
+     "treffer": [
+      "gemeinsame verantwortung",
+      "nach aussen",
+      "gemeinsam wahrgenommen",
+      "gemeinsam geführt",
+      "nur ausnahmsweise"
+     ]
+    }
+   ],
+   "soll": 3
+  },
+  {
+   "themengebiet": "recht-allgemein",
+   "id": "recht-06",
+   "unterthema": "haftung",
+   "quellnummer": "Frage 6",
+   "titel": "Voraussetzungen eines Schadensersatzanspruchs",
+   "frage": "Welche rechtlichen Voraussetzungen müssen erfüllt sein, damit ein Anspruch auf Schadensersatz entsteht?",
+   "logik": "kumulativ",
+   "musterloesung": {
+    "typ": "fliesstext",
+    "bloecke": [
+     {
+      "text": "Ein Anspruch auf Schadensersatz setzt voraus, dass ein Schaden entstanden ist, eine Pflichtverletzung vorliegt, ein ursächlicher Zusammenhang zwischen Pflichtverletzung und Schaden besteht und der Handelnde schuldhaft, also vorsätzlich oder fahrlässig, gehandelt hat."
+     }
+    ]
+   },
+   "konzepte": [
+    {
+     "id": "k1",
+     "label": "Ein Schaden ist entstanden",
+     "pflicht": true,
+     "treffer": [
+      "schaden entstanden",
+      "schaden eingetreten",
+      "es liegt ein schaden vor",
+      "schadenseintritt",
+      "schaden"
+     ]
+    },
+    {
+     "id": "k2",
+     "label": "Eine Pflichtverletzung liegt vor",
+     "pflicht": true,
+     "treffer": [
+      "pflichtverletzung",
+      "pflichtwidrig",
+      "rechtswidrige handlung",
+      "verstoss gegen eine pflicht"
+     ]
+    },
+    {
+     "id": "k3",
+     "label": "Ursächlicher Zusammenhang zwischen Pflichtverletzung und Schaden",
+     "pflicht": true,
+     "treffer": [
+      "ursächlich",
+      "kausal",
+      "kausalität",
+      "zusammenhang zwischen"
+     ]
+    },
+    {
+     "id": "k4",
+     "label": "Verschulden: vorsätzlich oder fahrlässig",
+     "pflicht": true,
+     "treffer": [
+      "schuldhaft",
+      "verschulden",
+      "vorsätzlich",
+      "fahrlässig"
+     ]
+    }
+   ],
+   "soll": 4
+  },
+  {
+   "themengebiet": "recht-allgemein",
+   "id": "recht-07",
+   "unterthema": "haftung",
+   "quellnummer": "Frage 7",
+   "titel": "Haftung bei Schäden durch ein Sportboot",
+   "frage": "Gegen wen richten sich Schadensersatzansprüche bei Schäden, die durch den Betrieb oder ein Manöver eines Sportbootes verursacht werden?",
+   "musterloesung": {
+    "typ": "fliesstext",
+    "bloecke": [
+     {
+      "text": "Schadensersatzansprüche richten sich grundsätzlich gegen den Verursacher des Schadens."
+     },
+     {
+      "text": "In der Praxis ist dies regelmäßig der Schiffsführer, da er für die sichere Führung des Schiffes verantwortlich ist."
+     },
+     {
+      "text": "Unter bestimmten Umständen kann auch der Halter oder Betreiber des Schiffes haftbar gemacht werden."
+     }
+    ]
+   },
+   "konzepte": [
+    {
+     "id": "k1",
+     "label": "Grundsätzlich gegen den Verursacher",
+     "pflicht": true,
+     "treffer": [
+      "verursacher",
+      "wer den schaden verursacht",
+      "schädiger"
+     ]
+    },
+    {
+     "id": "k2",
+     "label": "In der Praxis regelmässig der Schiffsführer",
+     "pflicht": true,
+     "treffer": [
+      "schiffsführer",
+      "skipper",
+      "in der praxis"
+     ]
+    },
+    {
+     "id": "k3",
+     "label": "Weil er für die sichere Führung verantwortlich ist",
+     "treffer": [
+      "sichere führung",
+      "verantwortlich für die führung",
+      "verantwortung für das schiff"
+     ]
+    },
+    {
+     "id": "k4",
+     "label": "Unter Umständen auch Halter oder Betreiber",
+     "pflicht": true,
+     "treffer": [
+      "halter",
+      "betreiber",
+      "eigner",
+      "eigentümer"
+     ]
+    }
+   ],
+   "soll": 4
+  },
+  {
+   "themengebiet": "recht-allgemein",
+   "id": "recht-08",
+   "unterthema": "versicherung",
+   "quellnummer": "Frage 8",
+   "titel": "Bedeutung der Sportboot-Haftpflichtversicherung",
+   "frage": "Welche Rolle spielt die Sportboot-Haftpflichtversicherung bei Schadensersatzansprüchen, und welche Bedeutung hat eine gewerbliche Nutzung?",
+   "musterloesung": {
+    "typ": "fliesstext",
+    "bloecke": [
+     {
+      "text": "Die Sportboot-Haftpflichtversicherung übernimmt in der Regel Schäden, die aus dem Betrieb des Sportbootes entstehen."
+     },
+     {
+      "text": "Bei gewerblicher Nutzung kann der Versicherungsschutz eingeschränkt oder ausgeschlossen sein, wenn diese Nutzung nicht ausdrücklich versichert wurde."
+     },
+     {
+      "text": "Eine gewerbliche Nutzung erfordert daher eine gesonderte Absicherung."
+     }
+    ]
+   },
+   "konzepte": [
+    {
+     "id": "k1",
+     "label": "Übernimmt Schäden aus dem Betrieb des Sportbootes",
+     "pflicht": true,
+     "treffer": [
+      "übernimmt",
+      "deckt",
+      "schäden aus dem betrieb",
+      "kommt für schäden auf"
+     ]
+    },
+    {
+     "id": "k2",
+     "label": "Bei gewerblicher Nutzung Schutz eingeschränkt oder ausgeschlossen",
+     "pflicht": true,
+     "treffer": [
+      "gewerblich",
+      "eingeschränkt",
+      "ausgeschlossen",
+      "kein versicherungsschutz"
+     ],
+     "verneinend": true
+    },
+    {
+     "id": "k3",
+     "label": "Nur wenn die gewerbliche Nutzung nicht ausdrücklich versichert wurde",
+     "treffer": [
+      "ausdrücklich versichert",
+      "nicht mitversichert",
+      "nicht vereinbart",
+      "im vertrag"
+     ],
+     "verneinend": true
+    },
+    {
+     "id": "k4",
+     "label": "Gewerbliche Nutzung erfordert gesonderte Absicherung",
+     "pflicht": true,
+     "treffer": [
+      "gesonderte absicherung",
+      "zusätzliche versicherung",
+      "eigene police",
+      "separat versichern",
+      "erweitern"
+     ]
+    }
+   ],
+   "soll": 4
+  },
+  {
+   "themengebiet": "recht-allgemein",
+   "id": "recht-09",
+   "unterthema": "strafrecht",
+   "quellnummer": "Frage 9",
+   "titel": "Strafbarkeit bei fahrlässigem Verhalten und Gefährdung",
+   "frage": "Kann bereits fahrlässiges Verhalten zu einer strafrechtlichen Verantwortung führen, und gilt dies auch bei blosser Gefährdung?",
+   "musterloesung": {
+    "typ": "fliesstext",
+    "bloecke": [
+     {
+      "text": "Bei Körperverletzung oder Tötung kann bereits fahrlässiges Verhalten strafbar sein."
+     },
+     {
+      "text": "Auch eine Gefährdung kann strafrechtlich relevant sein, wenn durch besonders sorgfaltswidriges oder rücksichtsloses Verhalten eine konkrete Gefahr für Leib oder Leben entsteht."
+     }
+    ]
+   },
+   "konzepte": [
+    {
+     "id": "k1",
+     "label": "Ja, schon Fahrlässigkeit ist strafbar",
+     "pflicht": true,
+     "treffer": [
+      "ja",
+      "fahrlässig",
+      "fahrlässigkeit genügt",
+      "bereits fahrlässiges verhalten"
+     ]
+    },
+    {
+     "id": "k2",
+     "label": "Bei Körperverletzung oder Tötung",
+     "pflicht": true,
+     "treffer": [
+      "körperverletzung",
+      "tötung",
+      "personenschaden"
+     ]
+    },
+    {
+     "id": "k3",
+     "label": "Auch die blosse Gefährdung ist strafrechtlich relevant",
+     "pflicht": true,
+     "treffer": [
+      "gefährdung",
+      "auch eine gefährdung",
+      "gefährdungsdelikt"
+     ]
+    },
+    {
+     "id": "k4",
+     "label": "Bei besonders sorgfaltswidrigem oder rücksichtslosem Verhalten",
+     "pflicht": true,
+     "treffer": [
+      "sorgfaltswidrig",
+      "rücksichtslos",
+      "grob fahrlässig",
+      "besonders schwer"
+     ]
+    },
+    {
+     "id": "k5",
+     "label": "Konkrete Gefahr für Leib oder Leben",
+     "pflicht": true,
+     "treffer": [
+      "konkrete gefahr",
+      "leib oder leben",
+      "leib und leben",
+      "lebensgefahr"
+     ]
+    }
+   ],
+   "soll": 5
+  },
+  {
+   "themengebiet": "solas-papiere-logbuch",
+   "id": "solas-01",
+   "unterthema": "solas-kapitel-v",
+   "quellnummer": "Frage 1",
+   "titel": "Anwendbarkeit von SOLAS Kapitel V auf die Sportschifffahrt",
+   "frage": "Gilt SOLAS Kapitel V uneingeschränkt auch für die Sportschifffahrt?",
+   "musterloesung": {
+    "typ": "fliesstext",
+    "bloecke": [
+     {
+      "text": "SOLAS Kapitel V gilt grundsätzlich auch für Sportboote, jedoch nicht uneingeschränkt."
+     },
+     {
+      "text": "Die Bestimmungen werden in Deutschland über das Schiffssicherheitsgesetz und die Schiffssicherheitsverordnung auf Sportboote angewendet, soweit sie dem Zweck nach sinnvoll und verhältnismäßig sind."
+     },
+     {
+      "text": "Für die Sportschifffahrt sind insbesondere die Regelungen zu Sicherheit der Navigation, Gefahrenmeldungen und Hilfeleistung relevant."
+     }
+    ]
+   },
+   "konzepte": [
+    {
+     "id": "k1",
+     "label": "Gilt grundsätzlich auch für Sportboote",
+     "pflicht": true,
+     "treffer": [
+      "gilt grundsätzlich",
+      "gilt auch",
+      "ja grundsätzlich",
+      "auch für sportboote"
+     ]
+    },
+    {
+     "id": "k2",
+     "label": "Aber nicht uneingeschränkt",
+     "pflicht": true,
+     "verbot": true,
+     "treffer": [
+      "nicht uneingeschränkt",
+      "nicht vollständig",
+      "eingeschränkt",
+      "nur teilweise",
+      "nicht in vollem umfang"
+     ],
+     "gegenteil": [
+      "uneingeschränkt",
+      "vollumfänglich",
+      "in vollem umfang"
+     ]
+    },
+    {
+     "id": "k3",
+     "label": "Umsetzung über Schiffssicherheitsgesetz und Schiffssicherheitsverordnung",
+     "pflicht": true,
+     "treffer": [
+      "schiffssicherheitsgesetz",
+      "schiffssicherheitsverordnung",
+      "schiffssicherheitsrecht",
+      "sisv"
+     ]
+    },
+    {
+     "id": "k4",
+     "label": "Soweit zweckmässig und verhältnismässig",
+     "treffer": [
+      "verhältnismässig",
+      "zweck",
+      "sinnvoll",
+      "angemessen"
+     ]
+    },
+    {
+     "id": "k5",
+     "label": "Relevant sind Sicherheit der Navigation, Gefahrenmeldungen, Hilfeleistung",
+     "pflicht": true,
+     "treffer": [
+      "sicherheit der navigation",
+      "gefahrenmeldung",
+      "hilfeleistung",
+      "navigation"
+     ]
+    }
+   ],
+   "soll": 5
+  },
+  {
+   "themengebiet": "solas-papiere-logbuch",
+   "id": "solas-02",
+   "unterthema": "solas-kapitel-v",
+   "quellnummer": "Frage 2",
+   "titel": "Rechtsverbindlichkeit von SOLAS Kapitel V Regel 14",
+   "frage": "Wie ist SOLAS Kapitel V Regel 14 international geregelt, und wodurch wird sie für deutsche Sportboote und Traditionsschiffe verbindlich?",
+   "musterloesung": {
+    "typ": "fliesstext",
+    "bloecke": [
+     {
+      "text": "SOLAS Kapitel V Regel 14 legt international fest, dass Schiffe über eine den Umständen angemessene Navigationsausrüstung verfügen müssen."
+     },
+     {
+      "text": "Für deutsche Sportboote und Traditionsschiffe wird diese Regel durch das Schiffssicherheitsrecht in nationales Recht umgesetzt und ist damit verbindlich."
+     },
+     {
+      "text": "Die konkrete Ausrüstung richtet sich nach Fahrtgebiet, Schiffstyp und Betriebsart."
+     }
+    ]
+   },
+   "konzepte": [
+    {
+     "id": "k1",
+     "label": "Regel 14 betrifft die Navigationsausrüstung",
+     "pflicht": true,
+     "treffer": [
+      "regel 14",
+      "navigationsausrüstung",
+      "v 14"
+     ]
+    },
+    {
+     "id": "k2",
+     "label": "Den Umständen angemessene Ausrüstung",
+     "pflicht": true,
+     "treffer": [
+      "angemessen",
+      "den umständen",
+      "ausreichend ausgerüstet"
+     ]
+    },
+    {
+     "id": "k3",
+     "label": "Umsetzung in nationales Recht über das Schiffssicherheitsrecht",
+     "pflicht": true,
+     "treffer": [
+      "schiffssicherheitsrecht",
+      "schiffssicherheitsgesetz",
+      "nationales recht",
+      "umgesetzt"
+     ]
+    },
+    {
+     "id": "k4",
+     "label": "Dadurch verbindlich",
+     "pflicht": true,
+     "treffer": [
+      "verbindlich",
+      "rechtsverbindlich",
+      "bindend"
+     ]
+    },
+    {
+     "id": "k5",
+     "label": "Ausrüstung richtet sich nach Fahrtgebiet, Schiffstyp und Betriebsart",
+     "treffer": [
+      "fahrtgebiet",
+      "schiffstyp",
+      "betriebsart",
+      "einsatzgebiet"
+     ]
+    }
+   ],
+   "soll": 5
+  },
+  {
+   "themengebiet": "solas-papiere-logbuch",
+   "id": "solas-03",
+   "unterthema": "solas-kapitel-v",
+   "quellnummer": "Frage 3",
+   "titel": "Geltung der Navigationsausrüstungspflicht für Jollen",
+   "frage": "Gilt die Verpflichtung zur Navigationsausrüstung nach SOLAS Kapitel V auch für Jollen?",
+   "musterloesung": {
+    "typ": "fliesstext",
+    "bloecke": [
+     {
+      "text": "Die Grundpflicht zur sicheren Navigation gilt auch für Jollen."
+     },
+     {
+      "text": "Art und Umfang der Navigationsausrüstung richten sich jedoch nach Größe, Bauart, Fahrtgebiet und Einsatzzweck."
+     },
+     {
+      "text": "Eine Jolle benötigt keine umfangreiche Ausrüstung wie ein hochseetaugliches Schiff, muss aber so ausgerüstet sein, dass eine sichere Navigation unter den vorgesehenen Einsatzbedingungen möglich ist."
+     }
+    ]
+   },
+   "konzepte": [
+    {
+     "id": "k1",
+     "label": "Die Grundpflicht zur sicheren Navigation gilt auch für Jollen",
+     "pflicht": true,
+     "treffer": [
+      "gilt auch",
+      "grundpflicht",
+      "ja",
+      "auch für jollen"
+     ]
+    },
+    {
+     "id": "k2",
+     "label": "Art und Umfang richten sich nach Grösse, Bauart, Fahrtgebiet und Einsatzzweck",
+     "pflicht": true,
+     "treffer": [
+      "grösse",
+      "bauart",
+      "fahrtgebiet",
+      "einsatzzweck",
+      "art und umfang"
+     ]
+    },
+    {
+     "id": "k3",
+     "label": "Keine Ausrüstung wie ein hochseetaugliches Schiff nötig",
+     "verneinend": true,
+     "treffer": [
+      "keine umfangreiche",
+      "nicht wie ein hochseetaugliches",
+      "weniger ausrüstung",
+      "geringerer umfang"
+     ]
+    },
+    {
+     "id": "k4",
+     "label": "Sichere Navigation unter den vorgesehenen Einsatzbedingungen muss möglich sein",
+     "pflicht": true,
+     "treffer": [
+      "sichere navigation",
+      "einsatzbedingungen",
+      "vorgesehenen einsatz",
+      "sicher navigieren"
+     ]
+    }
+   ],
+   "soll": 4
+  },
+  {
+   "themengebiet": "solas-papiere-logbuch",
+   "id": "solas-04",
+   "unterthema": "pflichten",
+   "quellnummer": "Frage 4",
+   "titel": "Meldepflichtige Gefahren für die Seefahrt",
+   "frage": "Welche Gefahren für die Seefahrt unterliegen einer Meldepflicht?",
+   "musterloesung": {
+    "typ": "gemischt",
+    "einleitung": "Meldepflichtig sind Gefahren, die die Sicherheit der Schifffahrt beeinträchtigen können, insbesondere",
+    "bloecke": [
+     {
+      "punkte": [
+       "treibende oder gesunkene Gegenstände",
+       "nicht gekennzeichnete Untiefen",
+       "Ausfälle von Schifffahrtszeichen",
+       "außergewöhnliche Wetter- oder Eisverhältnisse"
+      ]
+     },
+     {
+      "text": "Die Meldung dient der Veröffentlichung über nautische Warnsysteme und der Gefahrenabwehr."
+     }
+    ]
+   },
+   "konzepte": [
+    {
+     "id": "k1",
+     "label": "Gefahren, die die Sicherheit der Schifffahrt beeinträchtigen",
+     "pflicht": true,
+     "treffer": [
+      "sicherheit der schifffahrt",
+      "beeinträchtigen",
+      "gefahr für die schifffahrt"
+     ]
+    },
+    {
+     "id": "k2",
+     "label": "Treibende oder gesunkene Gegenstände",
+     "pflicht": true,
+     "treffer": [
+      "treibende",
+      "gesunkene",
+      "wrack",
+      "container",
+      "treibgut"
+     ]
+    },
+    {
+     "id": "k3",
+     "label": "Nicht gekennzeichnete Untiefen",
+     "pflicht": true,
+     "treffer": [
+      "untiefe",
+      "nicht gekennzeichnet",
+      "flachstelle",
+      "hindernis"
+     ],
+     "verneinend": true
+    },
+    {
+     "id": "k4",
+     "label": "Ausfälle von Schifffahrtszeichen",
+     "pflicht": true,
+     "treffer": [
+      "schifffahrtszeichen",
+      "seezeichen",
+      "tonne",
+      "leuchtfeuer",
+      "ausfall"
+     ]
+    },
+    {
+     "id": "k5",
+     "label": "Aussergewöhnliche Wetter- oder Eisverhältnisse",
+     "pflicht": true,
+     "treffer": [
+      "wetterverhältnisse",
+      "eisverhältnisse",
+      "eis",
+      "aussergewöhnliches wetter",
+      "sturm"
+     ]
+    },
+    {
+     "id": "k6",
+     "label": "Meldung dient nautischen Warnsystemen und der Gefahrenabwehr",
+     "treffer": [
+      "nautische warn",
+      "warnnachricht",
+      "nautischer warnnachrichtendienst",
+      "gefahrenabwehr",
+      "veröffentlichung"
+     ]
+    }
+   ],
+   "soll": 6
+  },
+  {
+   "themengebiet": "solas-papiere-logbuch",
+   "id": "solas-05",
+   "unterthema": "pflichten",
+   "quellnummer": "Frage 5",
+   "titel": "Rechtliche Grundlage der Pflicht zur Hilfeleistung bei Seenot",
+   "frage": "In welcher deutschen Rechtsvorschrift ist die Verpflichtung zur Hilfeleistung bei Seenot festgelegt?",
+   "musterloesung": {
+    "typ": "fliesstext",
+    "bloecke": [
+     {
+      "text": "Die Pflicht zur Hilfeleistung bei Seenot ist im Seerecht sowie im Strafgesetzbuch verankert."
+     },
+     {
+      "text": "Daneben ergibt sich die Verpflichtung aus internationalen Übereinkommen wie SOLAS Kapitel V, die in deutsches Recht umgesetzt wurden."
+     },
+     {
+      "text": "Jeder Schiffsführer ist verpflichtet, Hilfe zu leisten, soweit dies ohne erhebliche Gefahr für das eigene Schiff und die Besatzung möglich ist."
+     }
+    ]
+   },
+   "konzepte": [
+    {
+     "id": "k1",
+     "label": "Im Seerecht verankert",
+     "pflicht": true,
+     "treffer": [
+      "seerecht",
+      "seeschifffahrtsrecht"
+     ]
+    },
+    {
+     "id": "k2",
+     "label": "Sowie im Strafgesetzbuch",
+     "pflicht": true,
+     "treffer": [
+      "strafgesetzbuch",
+      "stgb",
+      "unterlassene hilfeleistung"
+     ]
+    },
+    {
+     "id": "k3",
+     "label": "Daneben aus SOLAS Kapitel V",
+     "pflicht": true,
+     "treffer": [
+      "solas",
+      "kapitel v",
+      "kapitel 5",
+      "internationale übereinkommen"
+     ]
+    },
+    {
+     "id": "k4",
+     "label": "Jeder Schiffsführer ist zur Hilfeleistung verpflichtet",
+     "pflicht": true,
+     "treffer": [
+      "jeder schiffsführer",
+      "verpflichtet hilfe",
+      "hilfe zu leisten",
+      "hilfeleistungspflicht"
+     ]
+    },
+    {
+     "id": "k5",
+     "label": "Soweit ohne erhebliche Gefahr für das eigene Schiff und die Besatzung",
+     "pflicht": true,
+     "treffer": [
+      "ohne erhebliche gefahr",
+      "eigene schiff",
+      "eigene besatzung",
+      "sich selbst nicht gefährden",
+      "zumutbar"
+     ],
+     "verneinend": true
+    }
+   ],
+   "soll": 5
+  },
+  {
+   "themengebiet": "solas-papiere-logbuch",
+   "id": "solas-06",
+   "unterthema": "schiffspapiere",
+   "quellnummer": "Frage 6",
+   "titel": "Gebräuchliche Schiffspapiere und ihre Funktion",
+   "frage": "Welche Schiffspapiere sind gebräuchlich, und welche dienen dem Eigentumsnachweis beziehungsweise dem Nachweis der Nationalität?",
+   "musterloesung": {
+    "typ": "fliesstext",
+    "bloecke": [
+     {
+      "text": "Als Eigentumsnachweis dienen insbesondere Kaufvertrag oder Rechnung."
+     },
+     {
+      "text": "Als Nationalitätsnachweis gelten amtliche Schiffsdokumente wie der Flaggenschein oder ein Schiffsregistereintrag."
+     },
+     {
+      "text": "Diese Papiere belegen, unter welcher Flagge das Schiff fährt und welchem Staat es zugeordnet ist."
+     }
+    ]
+   },
+   "konzepte": [
+    {
+     "id": "k1",
+     "label": "Eigentumsnachweis: Kaufvertrag",
+     "pflicht": true,
+     "treffer": [
+      "kaufvertrag"
+     ]
+    },
+    {
+     "id": "k2",
+     "label": "Eigentumsnachweis: Rechnung",
+     "treffer": [
+      "rechnung",
+      "quittung"
+     ]
+    },
+    {
+     "id": "k3",
+     "label": "Nationalitätsnachweis: Flaggenschein",
+     "pflicht": true,
+     "treffer": [
+      "flaggenschein",
+      "flaggenzertifikat",
+      "internationaler bootsschein"
+     ]
+    },
+    {
+     "id": "k4",
+     "label": "Nationalitätsnachweis: Schiffsregistereintrag",
+     "pflicht": true,
+     "treffer": [
+      "schiffsregister",
+      "registereintrag",
+      "schiffszertifikat",
+      "seeschiffsregister"
+     ]
+    },
+    {
+     "id": "k5",
+     "label": "Belegen Flagge und Staatszugehörigkeit",
+     "treffer": [
+      "unter welcher flagge",
+      "staat",
+      "zugeordnet",
+      "staatszugehörigkeit"
+     ]
+    }
+   ],
+   "soll": 5
+  },
+  {
+   "themengebiet": "solas-papiere-logbuch",
+   "id": "solas-07",
+   "unterthema": "schiffspapiere",
+   "quellnummer": "Frage 7",
+   "titel": "Bedeutung des Nachweises der Nationalität einer Yacht",
+   "frage": "Warum ist es rechtlich bedeutsam, die Nationalität einer Yacht nachweisen zu können?",
+   "musterloesung": {
+    "typ": "fliesstext",
+    "bloecke": [
+     {
+      "text": "Die Nationalität eines Schiffes bestimmt, welches Recht an Bord gilt und welcher Staat für die Ausübung hoheitlicher Befugnisse zuständig ist."
+     },
+     {
+      "text": "Sie ist insbesondere bei Kontrollen, Hafenaufenthalten, Unfällen und Haftungsfragen von Bedeutung."
+     }
+    ]
+   },
+   "konzepte": [
+    {
+     "id": "k1",
+     "label": "Bestimmt, welches Recht an Bord gilt",
+     "pflicht": true,
+     "treffer": [
+      "welches recht",
+      "recht an bord",
+      "flaggenstaatsprinzip",
+      "geltendes recht"
+     ]
+    },
+    {
+     "id": "k2",
+     "label": "Bestimmt den Staat mit hoheitlichen Befugnissen",
+     "pflicht": true,
+     "treffer": [
+      "hoheitlich",
+      "zuständiger staat",
+      "flaggenstaat",
+      "befugnisse"
+     ]
+    },
+    {
+     "id": "k3",
+     "label": "Bedeutsam bei Kontrollen und Hafenaufenthalten",
+     "pflicht": true,
+     "treffer": [
+      "kontrolle",
+      "hafenaufenthalt",
+      "einklarieren",
+      "behörden"
+     ]
+    },
+    {
+     "id": "k4",
+     "label": "Bedeutsam bei Unfällen und Haftungsfragen",
+     "pflicht": true,
+     "treffer": [
+      "unfall",
+      "haftung",
+      "haftungsfrage",
+      "schadensfall"
+     ]
+    }
+   ],
+   "soll": 4
+  },
+  {
+   "themengebiet": "solas-papiere-logbuch",
+   "id": "solas-08",
+   "unterthema": "logbuch",
+   "quellnummer": "Frage 8",
+   "titel": "Gesetzliche Vorgaben zur Logbuchführung",
+   "frage": "Welche gesetzlichen Vorgaben bestehen hinsichtlich der Führung eines Logbuchs?",
+   "musterloesung": {
+    "typ": "fliesstext",
+    "bloecke": [
+     {
+      "text": "Bei bestimmten Fahrten, insbesondere bei Auslandsfahrten, besteht die Pflicht zur Führung eines Logbuchs."
+     },
+     {
+      "text": "Die Verpflichtung ergibt sich aus SOLAS Kapitel V und wird über das deutsche Schiffssicherheitsrecht auf Sportboote angewendet."
+     },
+     {
+      "text": "Das Logbuch dient der Nachvollziehbarkeit der Reise und der Sicherheit der Schiffsführung."
+     }
+    ]
+   },
+   "konzepte": [
+    {
+     "id": "k1",
+     "label": "Pflicht bei bestimmten Fahrten, insbesondere Auslandsfahrten",
+     "pflicht": true,
+     "treffer": [
+      "auslandsfahrt",
+      "bestimmte fahrten",
+      "ins ausland",
+      "auslandsreise"
+     ]
+    },
+    {
+     "id": "k2",
+     "label": "Grundlage ist SOLAS Kapitel V",
+     "pflicht": true,
+     "treffer": [
+      "solas",
+      "kapitel v",
+      "kapitel 5"
+     ]
+    },
+    {
+     "id": "k3",
+     "label": "Angewendet über das deutsche Schiffssicherheitsrecht",
+     "pflicht": true,
+     "treffer": [
+      "schiffssicherheitsrecht",
+      "schiffssicherheitsgesetz",
+      "nationales recht"
+     ]
+    },
+    {
+     "id": "k4",
+     "label": "Dient der Nachvollziehbarkeit der Reise",
+     "pflicht": true,
+     "treffer": [
+      "nachvollziehbar",
+      "dokumentation",
+      "nachweis",
+      "beweis"
+     ]
+    },
+    {
+     "id": "k5",
+     "label": "Und der Sicherheit der Schiffsführung",
+     "treffer": [
+      "sicherheit der schiffsführung",
+      "sicherheit"
+     ]
+    }
+   ],
+   "soll": 5
+  },
+  {
+   "themengebiet": "solas-papiere-logbuch",
+   "id": "solas-09",
+   "unterthema": "logbuch",
+   "quellnummer": "Frage 9",
+   "titel": "Eintragungen zu Beginn einer Reise",
+   "frage": "Welche wesentlichen Angaben sind zu Beginn einer Reise in das Logbuch einzutragen?",
+   "musterloesung": {
+    "typ": "gemischt",
+    "einleitung": "Zu Beginn der Reise sind unter anderem einzutragen",
+    "bloecke": [
+     {
+      "punkte": [
+       "Abfahrtshafen und Zeitpunkt",
+       "Zielhafen",
+       "Besatzung",
+       "Wach- und Rollenverteilung",
+       "Zustand des Schiffes sowie sicherheitsrelevante Besonderheiten"
+      ]
+     },
+     {
+      "text": "Diese Angaben bilden die Grundlage für den weiteren Reiseverlauf."
+     }
+    ]
+   },
+   "konzepte": [
+    {
+     "id": "k1",
+     "label": "Abfahrtshafen und Zeitpunkt",
+     "pflicht": true,
+     "treffer": [
+      "abfahrtshafen",
+      "auslaufhafen",
+      "abfahrtszeit",
+      "zeitpunkt",
+      "uhrzeit"
+     ]
+    },
+    {
+     "id": "k2",
+     "label": "Zielhafen",
+     "pflicht": true,
+     "treffer": [
+      "zielhafen",
+      "bestimmungshafen",
+      "ziel"
+     ]
+    },
+    {
+     "id": "k3",
+     "label": "Besatzung",
+     "pflicht": true,
+     "treffer": [
+      "besatzung",
+      "crew",
+      "mannschaft",
+      "crewliste"
+     ]
+    },
+    {
+     "id": "k4",
+     "label": "Wach- und Rollenverteilung",
+     "pflicht": true,
+     "treffer": [
+      "wachverteilung",
+      "wacheinteilung",
+      "rollenverteilung",
+      "wachplan",
+      "sicherheitsrolle"
+     ]
+    },
+    {
+     "id": "k5",
+     "label": "Zustand des Schiffes und sicherheitsrelevante Besonderheiten",
+     "pflicht": true,
+     "treffer": [
+      "zustand des schiffes",
+      "sicherheitsrelevant",
+      "besonderheiten",
+      "ausrüstungszustand"
+     ]
+    }
+   ],
+   "soll": 5
+  },
+  {
+   "themengebiet": "solas-papiere-logbuch",
+   "id": "solas-10",
+   "unterthema": "logbuch",
+   "quellnummer": "Frage 10",
+   "titel": "Eintragungen während der Reise",
+   "frage": "Welche Eintragungen sind während der Reise im Logbuch vorzunehmen?",
+   "musterloesung": {
+    "typ": "gemischt",
+    "einleitung": "Während der Reise sind regelmäßig einzutragen",
+    "bloecke": [
+     {
+      "punkte": [
+       "Positionen",
+       "Kurs- und Fahrtänderungen",
+       "Wetter- und Seegang",
+       "besondere Vorkommnisse",
+       "sicherheitsrelevante Ereignisse"
+      ]
+     },
+     {
+      "text": "Die Eintragungen müssen den Reiseverlauf nachvollziehbar dokumentieren."
+     }
+    ]
+   },
+   "konzepte": [
+    {
+     "id": "k1",
+     "label": "Positionen",
+     "pflicht": true,
+     "treffer": [
+      "position",
+      "standort",
+      "besteck",
+      "koordinaten"
+     ]
+    },
+    {
+     "id": "k2",
+     "label": "Kurs- und Fahrtänderungen",
+     "pflicht": true,
+     "treffer": [
+      "kursänderung",
+      "fahrtänderung",
+      "kurs",
+      "geschwindigkeit"
+     ]
+    },
+    {
+     "id": "k3",
+     "label": "Wetter und Seegang",
+     "pflicht": true,
+     "treffer": [
+      "wetter",
+      "seegang",
+      "wind",
+      "sicht"
+     ]
+    },
+    {
+     "id": "k4",
+     "label": "Besondere Vorkommnisse",
+     "pflicht": true,
+     "treffer": [
+      "besondere vorkommnisse",
+      "vorkommnis",
+      "ereignisse",
+      "vorfälle"
+     ]
+    },
+    {
+     "id": "k5",
+     "label": "Sicherheitsrelevante Ereignisse",
+     "treffer": [
+      "sicherheitsrelevant",
+      "sicherheitsereignis",
+      "zwischenfall"
+     ]
+    },
+    {
+     "id": "k6",
+     "label": "Reiseverlauf muss nachvollziehbar dokumentiert sein",
+     "treffer": [
+      "nachvollziehbar",
+      "lückenlos",
+      "dokumentiert",
+      "reiseverlauf"
+     ]
+    }
+   ],
+   "soll": 6
+  },
+  {
+   "themengebiet": "solas-papiere-logbuch",
+   "id": "solas-11",
+   "unterthema": "logbuch",
+   "quellnummer": "Frage 11",
+   "titel": "Pflicht- und Sondereintragungen im Logbuch",
+   "frage": "In welchen Fällen sind besondere oder verpflichtende Eintragungen im Logbuch erforderlich?",
+   "musterloesung": {
+    "typ": "gemischt",
+    "einleitung": "Pflichteintragungen sind insbesondere bei",
+    "bloecke": [
+     {
+      "punkte": [
+       "Unfällen",
+       "Havarien",
+       "außergewöhnlichen Ereignissen",
+       "Hilfeleistungen",
+       "Abweichungen vom geplanten Reiseverlauf"
+      ]
+     },
+     {
+      "text": "erforderlich. Sie dienen der rechtlichen Absicherung und der späteren Nachvollziehbarkeit."
+     }
+    ]
+   },
+   "konzepte": [
+    {
+     "id": "k1",
+     "label": "Unfälle",
+     "pflicht": true,
+     "treffer": [
+      "unfall",
+      "unfälle",
+      "personenschaden"
+     ]
+    },
+    {
+     "id": "k2",
+     "label": "Havarien",
+     "pflicht": true,
+     "treffer": [
+      "havarie",
+      "kollision",
+      "grundberührung",
+      "schaden am schiff"
+     ]
+    },
+    {
+     "id": "k3",
+     "label": "Aussergewöhnliche Ereignisse",
+     "pflicht": true,
+     "treffer": [
+      "aussergewöhnlich",
+      "besondere ereignisse",
+      "ungewöhnlich"
+     ]
+    },
+    {
+     "id": "k4",
+     "label": "Hilfeleistungen",
+     "pflicht": true,
+     "treffer": [
+      "hilfeleistung",
+      "hilfe geleistet",
+      "rettung",
+      "bergung"
+     ]
+    },
+    {
+     "id": "k5",
+     "label": "Abweichungen vom geplanten Reiseverlauf",
+     "pflicht": true,
+     "treffer": [
+      "abweichung",
+      "routenänderung",
+      "vom plan abgewichen",
+      "umkehr"
+     ]
+    },
+    {
+     "id": "k6",
+     "label": "Dienen der rechtlichen Absicherung und Nachvollziehbarkeit",
+     "treffer": [
+      "rechtliche absicherung",
+      "beweis",
+      "nachvollziehbarkeit",
+      "absicherung"
+     ]
+    }
+   ],
+   "soll": 6
+  },
+  {
+   "themengebiet": "solas-papiere-logbuch",
+   "id": "solas-12",
+   "unterthema": "pflichten",
+   "quellnummer": "Frage 12",
+   "titel": "Rechtliche Rückendeckung bei sicherheitsbedingter Rückkehr",
+   "frage": "Wo findet der Schiffsführer rechtliche Rückendeckung, wenn er trotz wirtschaftlicher Interessen wegen Sicherheitsbedenken umkehrt oder nicht ausläuft?",
+   "musterloesung": {
+    "typ": "fliesstext",
+    "bloecke": [
+     {
+      "text": "Die rechtliche Grundlage ergibt sich aus der Verantwortung des Schiffsführers für die Sicherheit von Schiff und Besatzung."
+     },
+     {
+      "text": "Der Schiffsführer ist verpflichtet, sicherheitsrelevante Entscheidungen eigenverantwortlich zu treffen und darf wirtschaftliche Interessen nicht über die Sicherheit stellen."
+     }
+    ]
+   },
+   "konzepte": [
+    {
+     "id": "k1",
+     "label": "Verantwortung des Schiffsführers für die Sicherheit von Schiff und Besatzung",
+     "pflicht": true,
+     "treffer": [
+      "verantwortung des schiffsführers",
+      "sicherheit von schiff und besatzung",
+      "gesamtverantwortung",
+      "verantwortlich für die sicherheit"
+     ]
+    },
+    {
+     "id": "k2",
+     "label": "Sicherheitsrelevante Entscheidungen eigenverantwortlich treffen",
+     "pflicht": true,
+     "treffer": [
+      "eigenverantwortlich",
+      "allein entscheiden",
+      "letztentscheidung",
+      "eigene entscheidung"
+     ]
+    },
+    {
+     "id": "k3",
+     "label": "Wirtschaftliche Interessen dürfen nicht über die Sicherheit gestellt werden",
+     "pflicht": true,
+     "verbot": true,
+     "treffer": [
+      "nicht über die sicherheit",
+      "darf nicht",
+      "keine wirtschaftlichen interessen",
+      "sicherheit geht vor",
+      "sicherheit hat vorrang"
+     ],
+     "gegenteil": [
+      "wirtschaftliche interessen berücksichtigen",
+      "charterinteressen beachten",
+      "termin einhalten"
+     ]
+    }
+   ],
+   "soll": 3
+  },
+  {
+   "themengebiet": "solas-papiere-logbuch",
+   "id": "solas-13",
+   "unterthema": "pflichten",
+   "quellnummer": "Frage 13",
+   "titel": "Verhalten nach einem Zusammenstoss",
+   "frage": "Welche Pflichten schreibt das Seerecht nach einem Zusammenstoss von Schiffen vor?",
+   "musterloesung": {
+    "typ": "gemischt",
+    "einleitung": "Nach einem Zusammenstoß ist der Schiffsführer verpflichtet",
+    "bloecke": [
+     {
+      "punkte": [
+       "Hilfe zu leisten",
+       "den Austausch der notwendigen Angaben zu ermöglichen",
+       "Maßnahmen zur Schadensbegrenzung zu ergreifen"
+      ]
+     },
+     {
+      "text": "Diese Pflichten ergeben sich aus dem internationalen Seerecht und den nationalen Umsetzungsregelungen."
+     }
+    ]
+   },
+   "konzepte": [
+    {
+     "id": "k1",
+     "label": "Hilfe leisten",
+     "pflicht": true,
+     "treffer": [
+      "hilfe leisten",
+      "hilfeleistung",
+      "beistand",
+      "helfen"
+     ]
+    },
+    {
+     "id": "k2",
+     "label": "Austausch der notwendigen Angaben ermöglichen",
+     "pflicht": true,
+     "treffer": [
+      "austausch",
+      "angaben",
+      "namen austauschen",
+      "daten",
+      "schiffsnamen"
+     ]
+    },
+    {
+     "id": "k3",
+     "label": "Massnahmen zur Schadensbegrenzung ergreifen",
+     "pflicht": true,
+     "treffer": [
+      "schadensbegrenzung",
+      "schaden begrenzen",
+      "weitere schäden vermeiden",
+      "abwehren"
+     ]
+    },
+    {
+     "id": "k4",
+     "label": "Grundlage: internationales Seerecht und nationale Umsetzung",
+     "treffer": [
+      "seerecht",
+      "international",
+      "nationale umsetzung",
+      "übereinkommen"
+     ]
+    }
+   ],
+   "soll": 4
+  },
+  {
+   "themengebiet": "sug",
+   "id": "sug-01",
+   "unterthema": "seeunfall",
+   "quellnummer": "Frage 1",
+   "titel": "Begriff und rechtliche Einordnung des Seeunfalls",
+   "frage": "Wann liegt nach dem Seesicherheits-Untersuchungs-Gesetz ein Seeunfall vor?",
+   "logik": "alternativ",
+   "musterloesung": {
+    "typ": "gemischt",
+    "einleitung": "Ein Seeunfall liegt nach dem Seesicherheits-Untersuchungs-Gesetz vor, wenn durch oder im Zusammenhang mit dem Betrieb eines Schiffes ein Ereignis eintritt,",
+    "bloecke": [
+     {
+      "punkte": [
+       "bei dem Menschen zu Schaden kommen,",
+       "erhebliche Sachschäden an Schiffen, Bauwerken oder Ladung entstehen oder",
+       "eine Gefahr entsteht, aus der ein schwerer Schaden für Menschen, Schiffe oder die Umwelt hätte entstehen können."
+      ]
+     },
+     {
+      "text": "Dabei kommt es nicht auf ein Verschulden an, sondern allein auf den sicherheitsrelevanten Zusammenhang mit dem Schiffsbetrieb."
+     }
+    ]
+   },
+   "konzepte": [
+    {
+     "id": "k1",
+     "label": "Durch oder im Zusammenhang mit dem Betrieb eines Schiffes",
+     "pflicht": true,
+     "treffer": [
+      "betrieb eines schiffes",
+      "im zusammenhang mit dem betrieb",
+      "schiffsbetrieb",
+      "beim betrieb"
+     ]
+    },
+    {
+     "id": "k2",
+     "label": "Menschen kommen zu Schaden",
+     "alternativgruppe": "seeunfall-faelle",
+     "treffer": [
+      "menschen zu schaden",
+      "personenschaden",
+      "verletzt",
+      "getötet",
+      "personen verletzt"
+     ]
+    },
+    {
+     "id": "k3",
+     "label": "Erhebliche Sachschäden an Schiffen, Bauwerken oder Ladung",
+     "alternativgruppe": "seeunfall-faelle",
+     "treffer": [
+      "sachschaden",
+      "erhebliche sachschäden",
+      "bauwerk",
+      "ladung"
+     ]
+    },
+    {
+     "id": "k4",
+     "label": "Gefahr, aus der ein schwerer Schaden hätte entstehen können",
+     "alternativgruppe": "seeunfall-faelle",
+     "treffer": [
+      "gefahr entsteht",
+      "hätte entstehen können",
+      "beinaheunfall",
+      "schwerer schaden",
+      "umwelt"
+     ]
+    },
+    {
+     "id": "k5",
+     "label": "Auf ein Verschulden kommt es nicht an",
+     "pflicht": true,
+     "verbot": true,
+     "treffer": [
+      "nicht auf ein verschulden",
+      "verschulden nicht",
+      "kein verschulden",
+      "unabhängig vom verschulden",
+      "ohne verschulden",
+      "verschuldensunabhängig"
+     ],
+     "gegenteil": [
+      "verschulden ist erforderlich",
+      "setzt verschulden voraus",
+      "muss verschuldet sein"
+     ]
+    },
+    {
+     "id": "k6",
+     "label": "Massgeblich ist der sicherheitsrelevante Zusammenhang",
+     "treffer": [
+      "sicherheitsrelevant",
+      "sicherheitsbezug",
+      "zusammenhang mit dem schiffsbetrieb"
+     ]
+    }
+   ],
+   "soll": 4
+  },
+  {
+   "themengebiet": "sug",
+   "id": "sug-02",
+   "unterthema": "bsu",
+   "quellnummer": "Frage 2",
+   "titel": "Zweck der Sicherheitsuntersuchung",
+   "frage": "Welches Ziel verfolgt die Sicherheitsuntersuchung durch die BSU?",
+   "musterloesung": {
+    "typ": "fliesstext",
+    "bloecke": [
+     {
+      "text": "Ziel der Sicherheitsuntersuchung ist die Ermittlung der tatsächlichen Umstände und Ursachen eines Seeunfalls, um daraus Sicherheitsdefizite zu erkennen und Maßnahmen zur Unfallverhütung abzuleiten."
+     },
+     {
+      "text": "Die Untersuchung dient ausschließlich der Verbesserung der Sicherheit der Seeschifffahrt."
+     },
+     {
+      "text": "Sie ist ausdrücklich nicht darauf gerichtet, Schuld, Haftung oder Verantwortlichkeiten festzustellen oder rechtlich zu bewerten."
+     }
+    ]
+   },
+   "konzepte": [
+    {
+     "id": "k1",
+     "label": "Ermittlung der tatsächlichen Umstände und Ursachen",
+     "pflicht": true,
+     "treffer": [
+      "umstände und ursachen",
+      "ursachen ermitteln",
+      "ursachenforschung",
+      "hergang aufklären",
+      "ursache"
+     ]
+    },
+    {
+     "id": "k2",
+     "label": "Sicherheitsdefizite erkennen",
+     "pflicht": true,
+     "treffer": [
+      "sicherheitsdefizit",
+      "schwachstellen",
+      "mängel erkennen",
+      "defizit"
+     ]
+    },
+    {
+     "id": "k3",
+     "label": "Massnahmen zur Unfallverhütung ableiten",
+     "pflicht": true,
+     "treffer": [
+      "unfallverhütung",
+      "künftige unfälle",
+      "prävention",
+      "vermeidung weiterer unfälle"
+     ]
+    },
+    {
+     "id": "k4",
+     "label": "Dient ausschliesslich der Verbesserung der Sicherheit der Seeschifffahrt",
+     "pflicht": true,
+     "treffer": [
+      "verbesserung der sicherheit",
+      "ausschliesslich der sicherheit",
+      "sicherheit der seeschifffahrt"
+     ]
+    },
+    {
+     "id": "k5",
+     "label": "Nicht auf Feststellung von Schuld, Haftung oder Verantwortlichkeit gerichtet",
+     "pflicht": true,
+     "verbot": true,
+     "treffer": [
+      "nicht darauf gerichtet",
+      "keine schuld",
+      "nicht schuld",
+      "keine haftung",
+      "nicht auf haftung",
+      "keine verantwortlichkeiten",
+      "nicht die schuldfrage"
+     ],
+     "gegenteil": [
+      "schuld feststellen",
+      "haftung feststellen",
+      "verantwortliche ermitteln",
+      "schuldfrage klären"
+     ]
+    }
+   ],
+   "soll": 5
+  },
+  {
+   "themengebiet": "sug",
+   "id": "sug-03",
+   "unterthema": "bsu",
+   "quellnummer": "Frage 3",
+   "titel": "Zuständigkeit der Bundesstelle für Seeunfalluntersuchung",
+   "frage": "In welchen Fällen wird die BSU unabhängig vom Flaggenstaat tätig?",
+   "musterloesung": {
+    "typ": "gemischt",
+    "einleitung": "Die Bundesstelle für Seeunfalluntersuchung wird unabhängig vom Flaggenstaat des beteiligten Schiffes tätig, wenn sich der Seeunfall",
+    "bloecke": [
+     {
+      "punkte": [
+       "in den deutschen Hoheitsgewässern ereignet oder",
+       "in bestimmten Fällen in der deutschen ausschließlichen Wirtschaftszone (AWZ) stattfindet,"
+      ]
+     },
+     {
+      "text": "sofern ein hinreichender Bezug zur Sicherheit der Seeschifffahrt besteht. Die BSU entscheidet dabei eigenständig, ob und in welchem Umfang eine Sicherheitsuntersuchung durchgeführt wird."
+     }
+    ]
+   },
+   "konzepte": [
+    {
+     "id": "k1",
+     "label": "Unabhängig vom Flaggenstaat des beteiligten Schiffes",
+     "pflicht": true,
+     "treffer": [
+      "unabhängig vom flaggenstaat",
+      "flaggenstaat",
+      "egal welche flagge"
+     ]
+    },
+    {
+     "id": "k2",
+     "label": "Seeunfall in den deutschen Hoheitsgewässern",
+     "pflicht": true,
+     "treffer": [
+      "hoheitsgewässer",
+      "deutsche gewässer",
+      "küstenmeer",
+      "territorialgewässer"
+     ]
+    },
+    {
+     "id": "k3",
+     "label": "In bestimmten Fällen auch in der deutschen AWZ",
+     "pflicht": true,
+     "treffer": [
+      "awz",
+      "ausschliessliche wirtschaftszone",
+      "wirtschaftszone"
+     ]
+    },
+    {
+     "id": "k4",
+     "label": "Sofern hinreichender Bezug zur Sicherheit der Seeschifffahrt besteht",
+     "treffer": [
+      "hinreichender bezug",
+      "bezug zur sicherheit",
+      "sicherheitsrelevanz"
+     ]
+    },
+    {
+     "id": "k5",
+     "label": "Die BSU entscheidet eigenständig über Durchführung und Umfang",
+     "pflicht": true,
+     "treffer": [
+      "entscheidet eigenständig",
+      "eigenes ermessen",
+      "ob und in welchem umfang",
+      "selbst entscheiden"
+     ]
+    }
+   ],
+   "soll": 5
+  },
+  {
+   "themengebiet": "sug",
+   "id": "sug-04",
+   "unterthema": "meldepflicht",
+   "quellnummer": "Frage 4",
+   "titel": "Meldepflicht bei Seeunfällen",
+   "frage": "Wer ist zur Meldung eines Seeunfalls verpflichtet und wann muss diese erfolgen?",
+   "musterloesung": {
+    "typ": "gemischt",
+    "einleitung": "Zur Meldung eines Seeunfalls ist in erster Linie der Schiffsführer verpflichtet. Ist dieser dazu nicht in der Lage, trifft die Meldepflicht ersatzweise",
+    "bloecke": [
+     {
+      "punkte": [
+       "ein anderes Besatzungsmitglied oder",
+       "der Betreiber des Schiffes."
+      ]
+     },
+     {
+      "text": "Die Meldung muss unverzüglich, also ohne schuldhaftes Zögern, erfolgen, sobald Kenntnis vom Seeunfall oder vom Verdacht eines meldepflichtigen Ereignisses besteht."
+     }
+    ]
+   },
+   "konzepte": [
+    {
+     "id": "k1",
+     "label": "In erster Linie der Schiffsführer",
+     "pflicht": true,
+     "treffer": [
+      "schiffsführer",
+      "in erster linie",
+      "skipper",
+      "kapitän"
+     ]
+    },
+    {
+     "id": "k2",
+     "label": "Ersatzweise ein anderes Besatzungsmitglied",
+     "pflicht": true,
+     "treffer": [
+      "besatzungsmitglied",
+      "anderes crewmitglied",
+      "crew",
+      "ersatzweise"
+     ]
+    },
+    {
+     "id": "k3",
+     "label": "Ersatzweise der Betreiber des Schiffes",
+     "pflicht": true,
+     "treffer": [
+      "betreiber",
+      "reeder",
+      "eigner",
+      "halter"
+     ]
+    },
+    {
+     "id": "k4",
+     "label": "Unverzüglich, also ohne schuldhaftes Zögern",
+     "pflicht": true,
+     "treffer": [
+      "unverzüglich",
+      "ohne schuldhaftes zögern",
+      "sofort",
+      "umgehend"
+     ],
+     "verneinend": true
+    },
+    {
+     "id": "k5",
+     "label": "Sobald Kenntnis oder Verdacht besteht",
+     "treffer": [
+      "kenntnis",
+      "verdacht",
+      "sobald bekannt"
+     ]
+    }
+   ],
+   "soll": 5
+  },
+  {
+   "themengebiet": "sug",
+   "id": "sug-05",
+   "unterthema": "meldepflicht",
+   "quellnummer": "Frage 5",
+   "titel": "Inhalt der Seeunfallmeldung",
+   "frage": "Nennen Sie mindestens fünf Angaben, die eine Seeunfallmeldung enthalten muss.",
+   "mindestanzahl": 5,
+   "musterloesung": {
+    "typ": "gemischt",
+    "einleitung": "Eine Seeunfallmeldung muss mindestens folgende Angaben enthalten:",
+    "bloecke": [
+     {
+      "punkte": [
+       "Name und Kontaktdaten des Meldenden",
+       "Ort und Zeitpunkt des Ereignisses",
+       "Identität und Art des betroffenen Schiffes",
+       "Name des Schiffsführers",
+       "Art des Ereignisses sowie Art und Umfang der entstandenen oder drohenden Schäden"
+      ]
+     },
+     {
+      "text": "Ziel ist es, der zuständigen Stelle eine erste sicherheitsrelevante Einschätzung zu ermöglichen."
+     }
+    ]
+   },
+   "konzepte": [
+    {
+     "id": "k1",
+     "label": "Name und Kontaktdaten des Meldenden",
+     "treffer": [
+      "meldende",
+      "kontaktdaten",
+      "name des melders",
+      "wer meldet"
+     ]
+    },
+    {
+     "id": "k2",
+     "label": "Ort und Zeitpunkt des Ereignisses",
+     "treffer": [
+      "ort und zeitpunkt",
+      "position",
+      "wann und wo",
+      "uhrzeit",
+      "datum"
+     ]
+    },
+    {
+     "id": "k3",
+     "label": "Identität und Art des betroffenen Schiffes",
+     "treffer": [
+      "identität des schiffes",
+      "schiffsname",
+      "art des schiffes",
+      "schiffstyp"
+     ]
+    },
+    {
+     "id": "k4",
+     "label": "Name des Schiffsführers",
+     "treffer": [
+      "name des schiffsführers",
+      "schiffsführer",
+      "verantwortliche person"
+     ]
+    },
+    {
+     "id": "k5",
+     "label": "Art des Ereignisses",
+     "treffer": [
+      "art des ereignisses",
+      "was geschehen",
+      "hergang",
+      "unfallart"
+     ]
+    },
+    {
+     "id": "k6",
+     "label": "Art und Umfang der entstandenen oder drohenden Schäden",
+     "treffer": [
+      "umfang der schäden",
+      "entstandene schäden",
+      "drohende schäden",
+      "schadensausmass",
+      "schaden"
+     ]
+    },
+    {
+     "id": "k7",
+     "label": "Ziel: erste sicherheitsrelevante Einschätzung ermöglichen",
+     "treffer": [
+      "erste einschätzung",
+      "sicherheitsrelevante einschätzung",
+      "beurteilung ermöglichen"
+     ]
+    }
+   ],
+   "soll": 7
+  },
+  {
+   "themengebiet": "sug",
+   "id": "sug-06",
+   "unterthema": "seeamtsverfahren",
+   "quellnummer": "Frage 6",
+   "titel": "Trennung von Sicherheitsuntersuchung und Seeamtsverfahren",
+   "frage": "Warum sind Sicherheitsuntersuchung und Seeamtsverfahren voneinander getrennt?",
+   "musterloesung": {
+    "typ": "fliesstext",
+    "bloecke": [
+     {
+      "text": "Die Verfahren sind strikt getrennt, um sicherzustellen, dass die Ursachenforschung unabhängig von rechtlichen Bewertungen erfolgen kann."
+     },
+     {
+      "text": "Nur durch diese Trennung ist gewährleistet, dass Beteiligte ohne Angst vor rechtlichen Konsequenzen zur Aufklärung beitragen."
+     },
+     {
+      "text": "Während die Sicherheitsuntersuchung der Unfallverhütung dient, verfolgt das Seeamtsverfahren die Feststellung von Fehlverhalten und Verantwortlichkeiten."
+     }
+    ]
+   },
+   "konzepte": [
+    {
+     "id": "k1",
+     "label": "Ursachenforschung unabhängig von rechtlicher Bewertung",
+     "pflicht": true,
+     "treffer": [
+      "unabhängig von rechtlichen bewertungen",
+      "ursachenforschung",
+      "getrennt von der rechtlichen"
+     ]
+    },
+    {
+     "id": "k2",
+     "label": "Beteiligte tragen ohne Angst vor Konsequenzen zur Aufklärung bei",
+     "pflicht": true,
+     "treffer": [
+      "ohne angst",
+      "offen aussagen",
+      "rechtliche konsequenzen",
+      "freimütig",
+      "aufklärung beitragen"
+     ],
+     "verneinend": true
+    },
+    {
+     "id": "k3",
+     "label": "Sicherheitsuntersuchung dient der Unfallverhütung",
+     "pflicht": true,
+     "treffer": [
+      "unfallverhütung",
+      "sicherheitsuntersuchung dient",
+      "prävention"
+     ]
+    },
+    {
+     "id": "k4",
+     "label": "Seeamtsverfahren stellt Fehlverhalten und Verantwortlichkeiten fest",
+     "pflicht": true,
+     "treffer": [
+      "fehlverhalten",
+      "verantwortlichkeiten",
+      "seeamtsverfahren",
+      "schuld"
+     ]
+    }
+   ],
+   "soll": 4
+  },
+  {
+   "themengebiet": "sug",
+   "id": "sug-07",
+   "unterthema": "seeamtsverfahren",
+   "quellnummer": "Frage 7",
+   "titel": "Seeamtsverfahren — mögliche Folgen",
+   "frage": "Welche möglichen Folgen kann ein Seeamtsverfahren haben?",
+   "musterloesung": {
+    "typ": "gemischt",
+    "einleitung": "Ein Seeamtsverfahren kann zu folgenden Maßnahmen führen:",
+    "bloecke": [
+     {
+      "punkte": [
+       "Feststellung eines fehlerhaften oder unseemännischen Verhaltens",
+       "zeitweiliges Fahrverbot",
+       "Beschränkung, Ruhen oder Entzug von Befähigungszeugnissen"
+      ]
+     },
+     {
+      "text": "Das Seeamt bewertet dabei das Verhalten des Schiffsführers unter seemännischen und rechtlichen Gesichtspunkten."
+     }
+    ]
+   },
+   "konzepte": [
+    {
+     "id": "k1",
+     "label": "Feststellung fehlerhaften oder unseemännischen Verhaltens",
+     "pflicht": true,
+     "treffer": [
+      "fehlerhaftes verhalten",
+      "unseemännisch",
+      "feststellung des verhaltens"
+     ]
+    },
+    {
+     "id": "k2",
+     "label": "Zeitweiliges Fahrverbot",
+     "pflicht": true,
+     "treffer": [
+      "fahrverbot",
+      "fahrerlaubnis entzogen",
+      "nicht mehr fahren"
+     ],
+     "verneinend": true
+    },
+    {
+     "id": "k3",
+     "label": "Beschränkung, Ruhen oder Entzug von Befähigungszeugnissen",
+     "pflicht": true,
+     "treffer": [
+      "befähigungszeugnis",
+      "entzug",
+      "ruhen",
+      "beschränkung",
+      "patent",
+      "führerschein"
+     ]
+    },
+    {
+     "id": "k4",
+     "label": "Bewertung unter seemännischen und rechtlichen Gesichtspunkten",
+     "treffer": [
+      "seemännisch",
+      "rechtliche gesichtspunkte",
+      "bewertet das verhalten"
+     ]
+    }
+   ],
+   "soll": 4
+  },
+  {
+   "themengebiet": "sug",
+   "id": "sug-08",
+   "unterthema": "bsu",
+   "quellnummer": "Frage 8",
+   "titel": "Sicherheitsempfehlungen der BSU",
+   "frage": "Welche rechtliche Bedeutung haben Sicherheitsempfehlungen der BSU?",
+   "musterloesung": {
+    "typ": "fliesstext",
+    "bloecke": [
+     {
+      "text": "Sicherheitsempfehlungen der BSU sind nicht rechtsverbindlich, sondern dienen ausschließlich der Verbesserung der Sicherheit in der Seeschifffahrt."
+     },
+     {
+      "text": "Sie dürfen keine Aussagen zu Schuld, Haftung oder Verantwortung enthalten und begründen keine rechtlichen Verpflichtungen, können aber als wichtige Grundlage für technische, organisatorische oder rechtliche Verbesserungen dienen."
+     }
+    ]
+   },
+   "konzepte": [
+    {
+     "id": "k1",
+     "label": "Nicht rechtsverbindlich",
+     "pflicht": true,
+     "verbot": true,
+     "treffer": [
+      "nicht rechtsverbindlich",
+      "nicht verbindlich",
+      "unverbindlich",
+      "keine bindungswirkung"
+     ],
+     "gegenteil": [
+      "rechtsverbindlich",
+      "verbindlich",
+      "bindend"
+     ]
+    },
+    {
+     "id": "k2",
+     "label": "Dienen ausschliesslich der Verbesserung der Sicherheit",
+     "pflicht": true,
+     "treffer": [
+      "verbesserung der sicherheit",
+      "ausschliesslich der sicherheit",
+      "sicherheit der seeschifffahrt"
+     ]
+    },
+    {
+     "id": "k3",
+     "label": "Dürfen keine Aussagen zu Schuld, Haftung oder Verantwortung enthalten",
+     "pflicht": true,
+     "verbot": true,
+     "treffer": [
+      "keine aussagen zu schuld",
+      "keine schuld",
+      "nicht zu haftung",
+      "keine haftung",
+      "keine verantwortung"
+     ],
+     "gegenteil": [
+      "aussagen zu schuld",
+      "schuld benennen",
+      "haftung feststellen"
+     ]
+    },
+    {
+     "id": "k4",
+     "label": "Begründen keine rechtlichen Verpflichtungen",
+     "pflicht": true,
+     "verbot": true,
+     "treffer": [
+      "keine rechtlichen verpflichtungen",
+      "keine verpflichtung",
+      "nicht verpflichtend"
+     ],
+     "gegenteil": [
+      "begründen verpflichtungen",
+      "verpflichten"
+     ]
+    },
+    {
+     "id": "k5",
+     "label": "Können Grundlage für technische, organisatorische oder rechtliche Verbesserungen sein",
+     "treffer": [
+      "grundlage für verbesserungen",
+      "technische verbesserung",
+      "organisatorisch",
+      "anstoss"
+     ]
+    }
+   ],
+   "soll": 5
+  },
+  {
+   "themengebiet": "sug",
+   "id": "sug-09",
+   "unterthema": "fallbeispiel",
+   "quellnummer": "Frage 9",
+   "titel": "Fallbeispiel Segelyacht A — rechtliche Einordnung",
+   "sachverhalt": "Segelyacht A kollidiert im Zusammenhang mit dem Betrieb des Schiffes mit Yacht B. Yacht B sinkt infolge der Kollision.",
+   "sachverhaltRekonstruiert": true,
+   "anmerkung": "Der Sachverhalt zu den Fragen 9 und 10 fehlt in der Vorlage. Er ist hier aus den Musterantworten erschlossen und bewusst knapp gehalten. Vor der Prüfung mit der vollständigen Unterlage abgleichen.",
+   "frage": "Wie ist dieses Ereignis nach dem SUG rechtlich einzuordnen, und welche Stelle ist für die weitere sicherheitsbezogene Bewertung zuständig?",
+   "musterloesung": {
+    "typ": "fliesstext",
+    "bloecke": [
+     {
+      "text": "Bei dem geschilderten Ereignis handelt es sich um einen Seeunfall im Sinne des SUG, da es zu einer Kollision im Zusammenhang mit dem Betrieb eines Schiffes gekommen ist, die einen erheblichen Sachschaden (Sinken der Yacht B) zur Folge hatte."
+     },
+     {
+      "text": "Für die sicherheitsbezogene Bewertung und eine mögliche Untersuchung ist die Bundesstelle für Seeunfalluntersuchung (BSU) zuständig."
+     },
+     {
+      "text": "Diese entscheidet eigenständig, ob eine Sicherheitsuntersuchung durchgeführt wird und welchen Umfang sie hat."
+     }
+    ]
+   },
+   "konzepte": [
+    {
+     "id": "k1",
+     "label": "Es handelt sich um einen Seeunfall im Sinne des SUG",
+     "pflicht": true,
+     "treffer": [
+      "seeunfall",
+      "im sinne des sug",
+      "sug"
+     ]
+    },
+    {
+     "id": "k2",
+     "label": "Kollision im Zusammenhang mit dem Betrieb eines Schiffes",
+     "pflicht": true,
+     "treffer": [
+      "kollision",
+      "zusammenhang mit dem betrieb",
+      "schiffsbetrieb",
+      "zusammenstoss"
+     ]
+    },
+    {
+     "id": "k3",
+     "label": "Erheblicher Sachschaden durch das Sinken der Yacht B",
+     "pflicht": true,
+     "treffer": [
+      "erheblicher sachschaden",
+      "sachschaden",
+      "gesunken",
+      "sinken"
+     ]
+    },
+    {
+     "id": "k4",
+     "label": "Zuständig ist die BSU",
+     "pflicht": true,
+     "treffer": [
+      "bsu",
+      "bundesstelle für seeunfalluntersuchung",
+      "bundesstelle"
+     ]
+    },
+    {
+     "id": "k5",
+     "label": "Die BSU entscheidet eigenständig über Durchführung und Umfang",
+     "pflicht": true,
+     "treffer": [
+      "entscheidet eigenständig",
+      "ob eine untersuchung",
+      "welchen umfang",
+      "eigenes ermessen"
+     ]
+    }
+   ],
+   "soll": 5
+  },
+  {
+   "themengebiet": "sug",
+   "id": "sug-10",
+   "unterthema": "fallbeispiel",
+   "quellnummer": "Frage 10",
+   "titel": "Pflichten des Schiffsführers und mögliche Verfahren",
+   "sachverhalt": "Segelyacht A kollidiert im Zusammenhang mit dem Betrieb des Schiffes mit Yacht B. Yacht B sinkt infolge der Kollision.",
+   "sachverhaltRekonstruiert": true,
+   "anmerkung": "Der Sachverhalt zu den Fragen 9 und 10 fehlt in der Vorlage. Er ist hier aus den Musterantworten erschlossen und bewusst knapp gehalten. Vor der Prüfung mit der vollständigen Unterlage abgleichen.",
+   "frage": "Welche unmittelbaren Pflichten treffen den Schiffsführer von Yacht A nach dem Ereignis, und welche unterschiedlichen Verfahren können sich daraus ergeben?",
+   "musterloesung": {
+    "typ": "fliesstext",
+    "bloecke": [
+     {
+      "text": "Der Schiffsführer von Yacht A ist verpflichtet, den Seeunfall unverzüglich zu melden und dabei alle vorgeschriebenen Angaben vollständig und wahrheitsgemäß zu übermitteln."
+     },
+     {
+      "text": "Unabhängig davon kann die BSU eine Sicherheitsuntersuchung einleiten, deren Ziel ausschließlich die Ermittlung der Unfallursachen und die Verbesserung der Sicherheit ist."
+     },
+     {
+      "text": "Daneben kann – bei Anhaltspunkten für fehlerhaftes seemännisches Verhalten – ein Seeamtsverfahren durchgeführt werden."
+     },
+     {
+      "text": "Dieses kann zu Maßnahmen gegen Befähigungszeugnisse führen, während die Sicherheitsuntersuchung keine Schuld feststellt."
+     }
+    ]
+   },
+   "konzepte": [
+    {
+     "id": "k1",
+     "label": "Seeunfall unverzüglich melden",
+     "pflicht": true,
+     "treffer": [
+      "unverzüglich melden",
+      "meldepflicht",
+      "sofort melden",
+      "meldung"
+     ]
+    },
+    {
+     "id": "k2",
+     "label": "Angaben vollständig und wahrheitsgemäss übermitteln",
+     "pflicht": true,
+     "treffer": [
+      "vollständig",
+      "wahrheitsgemäss",
+      "alle angaben",
+      "korrekt"
+     ]
+    },
+    {
+     "id": "k3",
+     "label": "Die BSU kann eine Sicherheitsuntersuchung einleiten",
+     "pflicht": true,
+     "treffer": [
+      "bsu",
+      "sicherheitsuntersuchung",
+      "bundesstelle"
+     ]
+    },
+    {
+     "id": "k4",
+     "label": "Deren Ziel ist Ursachenermittlung und Verbesserung der Sicherheit",
+     "pflicht": true,
+     "treffer": [
+      "unfallursachen",
+      "verbesserung der sicherheit",
+      "ursachenermittlung"
+     ]
+    },
+    {
+     "id": "k5",
+     "label": "Daneben ist ein Seeamtsverfahren möglich",
+     "pflicht": true,
+     "treffer": [
+      "seeamtsverfahren",
+      "seeamt"
+     ]
+    },
+    {
+     "id": "k6",
+     "label": "Bei Anhaltspunkten für fehlerhaftes seemännisches Verhalten",
+     "treffer": [
+      "fehlerhaftes verhalten",
+      "unseemännisch",
+      "anhaltspunkte",
+      "seemännisches verhalten"
+     ]
+    },
+    {
+     "id": "k7",
+     "label": "Das Seeamtsverfahren kann zu Massnahmen gegen Befähigungszeugnisse führen",
+     "pflicht": true,
+     "treffer": [
+      "befähigungszeugnis",
+      "entzug",
+      "massnahmen gegen",
+      "patent",
+      "führerschein"
+     ]
+    },
+    {
+     "id": "k8",
+     "label": "Die Sicherheitsuntersuchung stellt keine Schuld fest",
+     "pflicht": true,
+     "verbot": true,
+     "treffer": [
+      "keine schuld",
+      "stellt keine schuld fest",
+      "nicht die schuld",
+      "ohne schuldfeststellung"
+     ],
+     "gegenteil": [
+      "stellt die schuld fest",
+      "schuld feststellen",
+      "klärt die schuldfrage"
+     ]
+    }
+   ],
+   "soll": 8
+  },
+  {
+   "themengebiet": "umweltschutz",
+   "id": "umwelt-01",
+   "unterthema": "praxis",
+   "quellnummer": "Frage 1",
+   "titel": "Ölhaltiges Bilgenwasser bei Charterübernahme",
+   "sachverhalt": "Bei der Übernahme einer Charteryacht stellen Sie fest, dass sich in der Motorraumbilge eine grössere Menge ölhaltigen Wassers befindet.",
+   "frage": "Unter welchen Voraussetzungen darf dieses Bilgenwasser gelenzt werden?",
+   "logik": "kumulativ",
+   "musterloesung": {
+    "typ": "fliesstext",
+    "bloecke": [
+     {
+      "text": "Ölhaltiges Bilgenwasser darf nicht ungefiltert ins Gewässer gepumpt werden."
+     },
+     {
+      "text": "Ein Lenzen ist nur zulässig, wenn eine zugelassene Öl-Wasser-Trenneinrichtung vorhanden ist und sichergestellt ist, dass der Ölgehalt des Wassers unterhalb der zulässigen Grenzwerte liegt."
+     },
+     {
+      "text": "Ist dies nicht gewährleistet, muss das Bilgenwasser an Land fachgerecht entsorgt werden."
+     },
+     {
+      "text": "Das Einleiten ölhaltiger Flüssigkeiten in das Meer oder in Hafenbecken ist unzulässig und stellt einen Umweltverstoß dar."
+     }
+    ]
+   },
+   "konzepte": [
+    {
+     "id": "k1",
+     "label": "Nicht ungefiltert ins Gewässer pumpen",
+     "pflicht": true,
+     "verbot": true,
+     "treffer": [
+      "nicht ungefiltert",
+      "darf nicht gepumpt",
+      "nicht ins gewässer",
+      "nicht einleiten",
+      "unzulässig",
+      "verboten"
+     ],
+     "gegenteil": [
+      "ins gewässer pumpen",
+      "ins meer pumpen",
+      "einfach lenzen",
+      "über bord pumpen"
+     ]
+    },
+    {
+     "id": "k2",
+     "label": "Nur mit zugelassener Öl-Wasser-Trenneinrichtung",
+     "pflicht": true,
+     "treffer": [
+      "trenneinrichtung",
+      "öl wasser trenner",
+      "separator",
+      "filteranlage",
+      "zugelassene einrichtung"
+     ]
+    },
+    {
+     "id": "k3",
+     "label": "Und Ölgehalt unterhalb der zulässigen Grenzwerte",
+     "pflicht": true,
+     "treffer": [
+      "grenzwert",
+      "ölgehalt",
+      "unterhalb",
+      "zulässiger wert",
+      "ppm"
+     ]
+    },
+    {
+     "id": "k4",
+     "label": "Sonst an Land fachgerecht entsorgen",
+     "pflicht": true,
+     "treffer": [
+      "an land",
+      "fachgerecht entsorgen",
+      "entsorgungsstelle",
+      "annahmestelle"
+     ]
+    }
+   ],
+   "soll": 4
+  },
+  {
+   "themengebiet": "umweltschutz",
+   "id": "umwelt-02",
+   "unterthema": "praxis",
+   "quellnummer": "Frage 2",
+   "titel": "Diesel gelangt beim Bunkern ins Hafenbecken",
+   "sachverhalt": "Beim Betanken einer Yacht in einem deutschen Ostseehafen laufen etwa fünf Liter Dieselöl in das Hafenbecken.",
+   "frage": "Welche Massnahmen sind unverzüglich zu veranlassen?",
+   "musterloesung": {
+    "typ": "fliesstext",
+    "bloecke": [
+     {
+      "text": "Der Vorfall ist unverzüglich der zuständigen Stelle zu melden, in der Regel der Hafenbehörde oder der Wasserschutzpolizei."
+     },
+     {
+      "text": "Eigene Reinigungsversuche mit Reinigungsmitteln oder chemischen Zusätzen sind unzulässig."
+     },
+     {
+      "text": "Soweit möglich, sind Maßnahmen zur Begrenzung der Ausbreitung zu unterstützen, etwa durch das Bereitstellen von Ölsperren."
+     },
+     {
+      "text": "Das Unterlassen der Meldung kann rechtliche Konsequenzen nach sich ziehen."
+     }
+    ]
+   },
+   "konzepte": [
+    {
+     "id": "k1",
+     "label": "Unverzüglich der zuständigen Stelle melden",
+     "pflicht": true,
+     "treffer": [
+      "unverzüglich melden",
+      "sofort melden",
+      "meldung",
+      "melden"
+     ]
+    },
+    {
+     "id": "k2",
+     "label": "Hafenbehörde oder Wasserschutzpolizei",
+     "pflicht": true,
+     "treffer": [
+      "hafenbehörde",
+      "wasserschutzpolizei",
+      "hafenmeister",
+      "behörde"
+     ]
+    },
+    {
+     "id": "k3",
+     "label": "Eigene Reinigungsversuche mit Chemikalien sind unzulässig",
+     "pflicht": true,
+     "verbot": true,
+     "treffer": [
+      "keine reinigungsversuche",
+      "keine reinigungsmittel",
+      "nicht selbst reinigen",
+      "unzulässig",
+      "verboten",
+      "keine chemischen zusätze"
+     ],
+     "gegenteil": [
+      "mit spülmittel",
+      "reinigungsmittel einsetzen",
+      "selbst reinigen",
+      "dispergiermittel"
+     ]
+    },
+    {
+     "id": "k4",
+     "label": "Ausbreitung begrenzen, etwa mit Ölsperren",
+     "pflicht": true,
+     "treffer": [
+      "ölsperre",
+      "ausbreitung begrenzen",
+      "eindämmen",
+      "bindemittel bereitstellen"
+     ]
+    },
+    {
+     "id": "k5",
+     "label": "Unterlassene Meldung kann rechtliche Folgen haben",
+     "treffer": [
+      "rechtliche konsequenzen",
+      "strafbar",
+      "folgen",
+      "bussgeld"
+     ]
+    }
+   ],
+   "soll": 5
+  },
+  {
+   "themengebiet": "umweltschutz",
+   "id": "umwelt-03",
+   "unterthema": "praxis",
+   "quellnummer": "Frage 3.1",
+   "titel": "Umgang mit Fäkalien",
+   "sachverhalt": "Ausbildungsfahrt mit zwölf Personen in dänischen Gewässern.",
+   "frage": "Welche umweltrechtlichen Anforderungen gelten für den Umgang mit Fäkalien an Bord einer Ausbildungssegelyacht in dänischen Gewässern?",
+   "dublettenGruppe": "faekalien-entsorgung",
+   "leitfrage": true,
+   "musterloesung": {
+    "typ": "fliesstext",
+    "bloecke": [
+     {
+      "text": "Fäkalien dürfen nicht ungereinigt ins Meer eingeleitet werden."
+     },
+     {
+      "text": "Sie sind in einem Fäkalientank zu sammeln und an einer zugelassenen Absaugstation an Land zu entsorgen."
+     },
+     {
+      "text": "In Küsten- und Sondergebieten gelten besonders strenge Regelungen, die eine Einleitung grundsätzlich verbieten."
+     }
+    ]
+   },
+   "konzepte": [
+    {
+     "id": "k1",
+     "label": "Keine ungereinigte Einleitung ins Meer",
+     "pflicht": true,
+     "verbot": true,
+     "treffer": [
+      "nicht ungereinigt",
+      "dürfen nicht eingeleitet",
+      "nicht ins meer",
+      "keine einleitung",
+      "unzulässig",
+      "verboten"
+     ],
+     "gegenteil": [
+      "ins meer einleiten",
+      "über bord pumpen",
+      "direkt einleiten"
+     ]
+    },
+    {
+     "id": "k2",
+     "label": "In einem Fäkalientank sammeln",
+     "pflicht": true,
+     "treffer": [
+      "fäkalientank",
+      "tank sammeln",
+      "schmutzwassertank",
+      "auffangtank",
+      "in einem tank"
+     ]
+    },
+    {
+     "id": "k3",
+     "label": "An einer zugelassenen Absaugstation an Land entsorgen",
+     "pflicht": true,
+     "treffer": [
+      "absaugstation",
+      "an land entsorgen",
+      "entsorgungsstation",
+      "an land"
+     ]
+    },
+    {
+     "id": "k4",
+     "label": "In Küsten- und Sondergebieten gelten strengere Regeln",
+     "treffer": [
+      "sondergebiet",
+      "küstengewässer",
+      "strenger",
+      "besonders streng"
+     ]
+    }
+   ],
+   "soll": 4
+  },
+  {
+   "themengebiet": "umweltschutz",
+   "id": "umwelt-04",
+   "unterthema": "praxis",
+   "quellnummer": "Frage 3.2",
+   "titel": "Lebensmittelabfälle",
+   "sachverhalt": "Ausbildungsfahrt mit zwölf Personen in dänischen Gewässern.",
+   "frage": "Wie sind anfallende Lebensmittelabfälle an Bord zu behandeln?",
+   "musterloesung": {
+    "typ": "fliesstext",
+    "bloecke": [
+     {
+      "text": "Lebensmittelabfälle dürfen nicht ins Meer eingebracht werden."
+     },
+     {
+      "text": "Sie sind an Bord zu sammeln und ordnungsgemäß an Land zu entsorgen."
+     },
+     {
+      "text": "Dies gilt insbesondere in Küstengewässern und in besonders geschützten Seegebieten."
+     }
+    ]
+   },
+   "konzepte": [
+    {
+     "id": "k1",
+     "label": "Dürfen nicht ins Meer eingebracht werden",
+     "pflicht": true,
+     "verbot": true,
+     "treffer": [
+      "nicht ins meer",
+      "dürfen nicht eingebracht",
+      "kein einbringen",
+      "unzulässig",
+      "verboten"
+     ],
+     "gegenteil": [
+      "ins meer werfen",
+      "über bord geben",
+      "einbringen erlaubt"
+     ]
+    },
+    {
+     "id": "k2",
+     "label": "An Bord sammeln",
+     "pflicht": true,
+     "treffer": [
+      "an bord sammeln",
+      "sammeln",
+      "aufbewahren",
+      "getrennt sammeln"
+     ]
+    },
+    {
+     "id": "k3",
+     "label": "Ordnungsgemäss an Land entsorgen",
+     "pflicht": true,
+     "treffer": [
+      "an land entsorgen",
+      "an land",
+      "ordnungsgemäss entsorgen",
+      "entsorgungsstelle"
+     ]
+    },
+    {
+     "id": "k4",
+     "label": "Gilt insbesondere in Küstengewässern und geschützten Seegebieten",
+     "treffer": [
+      "küstengewässer",
+      "geschützte seegebiete",
+      "sondergebiet",
+      "schutzgebiet"
+     ]
+    }
+   ],
+   "soll": 4
+  },
+  {
+   "themengebiet": "umweltschutz",
+   "id": "umwelt-05",
+   "unterthema": "praxis",
+   "quellnummer": "Frage 3.3",
+   "titel": "Kunststoffabfälle",
+   "sachverhalt": "Ausbildungsfahrt mit zwölf Personen in dänischen Gewässern.",
+   "frage": "Wie ist mit leeren Plastikflaschen an Bord zu verfahren?",
+   "musterloesung": {
+    "typ": "fliesstext",
+    "bloecke": [
+     {
+      "text": "Kunststoffabfälle dürfen unter keinen Umständen ins Meer gelangen."
+     },
+     {
+      "text": "Sie sind an Bord aufzubewahren und ausschließlich an Land fachgerecht zu entsorgen."
+     },
+     {
+      "text": "Das Einbringen von Kunststoffen in das Meer ist grundsätzlich verboten."
+     }
+    ]
+   },
+   "konzepte": [
+    {
+     "id": "k1",
+     "label": "Dürfen unter keinen Umständen ins Meer gelangen",
+     "pflicht": true,
+     "verbot": true,
+     "treffer": [
+      "unter keinen umständen",
+      "nicht ins meer",
+      "niemals ins meer",
+      "verboten",
+      "unzulässig",
+      "absolutes verbot"
+     ],
+     "gegenteil": [
+      "ins meer werfen",
+      "über bord",
+      "einbringen erlaubt"
+     ]
+    },
+    {
+     "id": "k2",
+     "label": "An Bord aufbewahren",
+     "pflicht": true,
+     "treffer": [
+      "an bord aufbewahren",
+      "an bord aufzubewahren",
+      "aufzubewahren",
+      "sammeln",
+      "aufbewahren",
+      "mitnehmen"
+     ]
+    },
+    {
+     "id": "k3",
+     "label": "Ausschliesslich an Land fachgerecht entsorgen",
+     "pflicht": true,
+     "treffer": [
+      "an land entsorgen",
+      "fachgerecht",
+      "an land",
+      "entsorgungsstelle"
+     ]
+    }
+   ],
+   "soll": 3
+  },
+  {
+   "themengebiet": "umweltschutz",
+   "id": "umwelt-06",
+   "unterthema": "praxis",
+   "quellnummer": "Frage 4",
+   "titel": "Entsorgung von Altöl und ölverschmutztem Material",
+   "sachverhalt": "Nach einem Ölwechsel im Hafen fallen mehrere Liter Altöl, ein gebrauchter Ölfilter sowie ölverschmutzte Lappen an.",
+   "frage": "Wie sind diese Abfälle zu entsorgen?",
+   "musterloesung": {
+    "typ": "fliesstext",
+    "bloecke": [
+     {
+      "text": "Altöl, gebrauchte Ölfilter und ölverschmutzte Materialien gelten als Sonderabfall."
+     },
+     {
+      "text": "Sie sind getrennt zu sammeln und an einer dafür vorgesehenen Entsorgungsstelle an Land abzugeben. Eine Entsorgung über den Hausmüll oder das Einbringen ins Gewässer ist unzulässig."
+     }
+    ]
+   },
+   "konzepte": [
+    {
+     "id": "k1",
+     "label": "Gelten als Sonderabfall",
+     "pflicht": true,
+     "treffer": [
+      "sonderabfall",
+      "sondermüll",
+      "gefährlicher abfall",
+      "problemstoff"
+     ]
+    },
+    {
+     "id": "k2",
+     "label": "Getrennt sammeln",
+     "pflicht": true,
+     "treffer": [
+      "getrennt sammeln",
+      "getrennt",
+      "separat"
+     ]
+    },
+    {
+     "id": "k3",
+     "label": "An einer vorgesehenen Entsorgungsstelle an Land abgeben",
+     "pflicht": true,
+     "treffer": [
+      "entsorgungsstelle",
+      "annahmestelle",
+      "an land abgeben",
+      "sammelstelle",
+      "an land"
+     ]
+    },
+    {
+     "id": "k4",
+     "label": "Weder in den Hausmüll noch ins Gewässer",
+     "pflicht": true,
+     "verbot": true,
+     "treffer": [
+      "nicht in den hausmüll",
+      "kein hausmüll",
+      "nicht ins gewässer",
+      "unzulässig",
+      "verboten"
+     ],
+     "gegenteil": [
+      "in den hausmüll",
+      "über den restmüll",
+      "ins gewässer"
+     ]
+    }
+   ],
+   "soll": 4
+  },
+  {
+   "themengebiet": "umweltschutz",
+   "id": "umwelt-07",
+   "unterthema": "praxis",
+   "quellnummer": "Frage 5",
+   "titel": "Farbreste nach dem Unterwasseranstrich",
+   "sachverhalt": "Nach der Erneuerung des Unterwasseranstrichs bleiben leere Farbtöpfe und benutzte Farbrollen zurück.",
+   "frage": "Wie ist mit diesen Abfällen umzugehen?",
+   "musterloesung": {
+    "typ": "fliesstext",
+    "bloecke": [
+     {
+      "text": "Leere Farbtöpfe und Farbrollen gelten, insbesondere bei Farb- oder Lösemittelresten, als problematische Abfälle."
+     },
+     {
+      "text": "Sie dürfen nicht über Bord entsorgt werden und sind in der Regel an einer geeigneten Sammelstelle an Land abzugeben."
+     }
+    ]
+   },
+   "konzepte": [
+    {
+     "id": "k1",
+     "label": "Gelten als problematische Abfälle",
+     "pflicht": true,
+     "treffer": [
+      "problematische abfälle",
+      "sonderabfall",
+      "sondermüll",
+      "problemstoff",
+      "gefährlich"
+     ]
+    },
+    {
+     "id": "k2",
+     "label": "Wegen der Farb- und Lösemittelreste",
+     "treffer": [
+      "lösemittel",
+      "farbreste",
+      "lösungsmittel",
+      "reste"
+     ]
+    },
+    {
+     "id": "k3",
+     "label": "Dürfen nicht über Bord entsorgt werden",
+     "pflicht": true,
+     "verbot": true,
+     "treffer": [
+      "nicht über bord",
+      "dürfen nicht entsorgt",
+      "nicht ins wasser",
+      "unzulässig",
+      "verboten"
+     ],
+     "gegenteil": [
+      "über bord entsorgen",
+      "ins wasser werfen"
+     ]
+    },
+    {
+     "id": "k4",
+     "label": "An einer geeigneten Sammelstelle an Land abgeben",
+     "pflicht": true,
+     "treffer": [
+      "sammelstelle",
+      "an land",
+      "annahmestelle",
+      "entsorgungsstelle"
+     ]
+    }
+   ],
+   "soll": 4
+  },
+  {
+   "themengebiet": "umweltschutz",
+   "id": "umwelt-08",
+   "unterthema": "theorie",
+   "quellnummer": "Frage 6",
+   "titel": "MARPOL-Übereinkommen und Helsinki-Übereinkommen",
+   "frage": "Worin unterscheiden sich das MARPOL-Übereinkommen und das Übereinkommen von Helsinki hinsichtlich ihres Anwendungsbereichs?",
+   "musterloesung": {
+    "typ": "fliesstext",
+    "bloecke": [
+     {
+      "text": "Das MARPOL-Übereinkommen ist ein weltweit geltendes Regelwerk zum Schutz der Meeresumwelt vor Verschmutzung durch Schiffe."
+     },
+     {
+      "text": "Das Helsinki-Übereinkommen ist ein regionales Abkommen zum Schutz der Ostsee und enthält teilweise strengere Vorgaben für dieses Seegebiet."
+     }
+    ]
+   },
+   "konzepte": [
+    {
+     "id": "k1",
+     "label": "MARPOL gilt weltweit",
+     "pflicht": true,
+     "treffer": [
+      "weltweit",
+      "global",
+      "international geltend"
+     ]
+    },
+    {
+     "id": "k2",
+     "label": "MARPOL schützt die Meeresumwelt vor Verschmutzung durch Schiffe",
+     "pflicht": true,
+     "treffer": [
+      "meeresumwelt",
+      "verschmutzung durch schiffe",
+      "marpol",
+      "schutz der meere"
+     ]
+    },
+    {
+     "id": "k3",
+     "label": "Helsinki ist ein regionales Abkommen",
+     "pflicht": true,
+     "treffer": [
+      "regional",
+      "helsinki",
+      "helcom",
+      "regionales abkommen"
+     ]
+    },
+    {
+     "id": "k4",
+     "label": "Helsinki schützt die Ostsee",
+     "pflicht": true,
+     "treffer": [
+      "ostsee",
+      "baltisch"
+     ]
+    },
+    {
+     "id": "k5",
+     "label": "Und enthält teilweise strengere Vorgaben",
+     "pflicht": true,
+     "treffer": [
+      "strenger",
+      "strengere vorgaben",
+      "weitergehend",
+      "schärfer"
+     ]
+    }
+   ],
+   "soll": 5
+  },
+  {
+   "themengebiet": "umweltschutz",
+   "id": "umwelt-09",
+   "unterthema": "theorie",
+   "quellnummer": "Frage 7",
+   "titel": "Antifouling und Umweltschutz",
+   "frage": "Wie kann bereits bei der Auswahl des Antifouling-Anstrichs ein Beitrag zum Umweltschutz geleistet werden?",
+   "musterloesung": {
+    "typ": "fliesstext",
+    "bloecke": [
+     {
+      "text": "Durch die Verwendung umweltverträglicher, biozidarmer oder biozidfreier Antifoulings kann die Belastung der Gewässer reduziert werden."
+     },
+     {
+      "text": "Auch eine sachgerechte Anwendung und regelmäßige Pflege tragen zur Verringerung von Schadstoffeinträgen bei."
+     }
+    ]
+   },
+   "konzepte": [
+    {
+     "id": "k1",
+     "label": "Umweltverträgliche, biozidarme oder biozidfreie Antifoulings verwenden",
+     "pflicht": true,
+     "treffer": [
+      "biozidarm",
+      "biozidfrei",
+      "umweltverträglich",
+      "ohne biozide",
+      "hartantifouling"
+     ],
+     "verneinend": true
+    },
+    {
+     "id": "k2",
+     "label": "Verringert die Belastung der Gewässer",
+     "pflicht": true,
+     "treffer": [
+      "belastung der gewässer",
+      "weniger schadstoffe",
+      "gewässerbelastung",
+      "belastung reduzieren"
+     ]
+    },
+    {
+     "id": "k3",
+     "label": "Sachgerechte Anwendung und regelmässige Pflege",
+     "pflicht": true,
+     "treffer": [
+      "sachgerechte anwendung",
+      "regelmässige pflege",
+      "richtig auftragen",
+      "pflege"
+     ]
+    },
+    {
+     "id": "k4",
+     "label": "Verringert Schadstoffeinträge",
+     "treffer": [
+      "schadstoffeintrag",
+      "eintrag verringern",
+      "weniger eintrag"
+     ]
+    }
+   ],
+   "soll": 3
+  },
+  {
+   "themengebiet": "umweltschutz",
+   "id": "umwelt-10",
+   "unterthema": "theorie",
+   "quellnummer": "Frage 8",
+   "titel": "Sauberkeit und Geruchsfreiheit der Bordtoilette",
+   "frage": "Welche Massnahmen tragen dazu bei, die Bordtoilette hygienisch und geruchsfrei zu halten?",
+   "musterloesung": {
+    "typ": "fliesstext",
+    "bloecke": [
+     {
+      "text": "Regelmäßiges und ausreichendes Spülen, die Reinigung der Leitungen sowie der sparsame Einsatz geeigneter Sanitärzusätze tragen wesentlich zur Hygiene bei."
+     },
+     {
+      "text": "Aggressive Chemikalien sollten vermieden werden, da sie Umwelt und Bordtechnik schädigen können."
+     }
+    ]
+   },
+   "konzepte": [
+    {
+     "id": "k1",
+     "label": "Regelmässiges und ausreichendes Spülen",
+     "pflicht": true,
+     "treffer": [
+      "spülen",
+      "ausreichend spülen",
+      "gut durchspülen"
+     ]
+    },
+    {
+     "id": "k2",
+     "label": "Reinigung der Leitungen",
+     "pflicht": true,
+     "treffer": [
+      "leitungen reinigen",
+      "leitung",
+      "schläuche",
+      "kalk"
+     ]
+    },
+    {
+     "id": "k3",
+     "label": "Sparsamer Einsatz geeigneter Sanitärzusätze",
+     "pflicht": true,
+     "treffer": [
+      "sanitärzusatz",
+      "sparsam",
+      "sanitärflüssigkeit",
+      "zusätze"
+     ]
+    },
+    {
+     "id": "k4",
+     "label": "Aggressive Chemikalien vermeiden",
+     "pflicht": true,
+     "verbot": true,
+     "treffer": [
+      "keine aggressiven chemikalien",
+      "aggressive chemikalien vermeiden",
+      "chemikalien vermieden",
+      "keine chemikalien",
+      "nicht aggressiv",
+      "vermeiden",
+      "vermieden"
+     ],
+     "gegenteil": [
+      "chlorreiniger",
+      "aggressive reiniger verwenden",
+      "starke chemie"
+     ]
+    },
+    {
+     "id": "k5",
+     "label": "Weil sie Umwelt und Bordtechnik schädigen",
+     "treffer": [
+      "schädigen",
+      "umwelt",
+      "bordtechnik",
+      "material angreifen"
+     ]
+    }
+   ],
+   "soll": 5
+  },
+  {
+   "themengebiet": "umweltschutz",
+   "id": "umwelt-11",
+   "unterthema": "theorie",
+   "quellnummer": "Frage 9",
+   "titel": "Vermeidung von Öl in der Bilge",
+   "frage": "Welche Massnahmen helfen, das Eindringen von Öl in die Bilge zu verhindern?",
+   "musterloesung": {
+    "typ": "fliesstext",
+    "bloecke": [
+     {
+      "text": "Regelmäßige Wartung des Motors, sauberes Arbeiten bei Ölwechseln und der Einsatz von Ölbindematten tragen dazu bei, das Eindringen von Öl in die Bilge zu vermeiden."
+     }
+    ]
+   },
+   "konzepte": [
+    {
+     "id": "k1",
+     "label": "Regelmässige Wartung des Motors",
+     "pflicht": true,
+     "treffer": [
+      "wartung",
+      "motor warten",
+      "regelmässige wartung",
+      "gepflegter motor"
+     ]
+    },
+    {
+     "id": "k2",
+     "label": "Sauberes Arbeiten bei Ölwechseln",
+     "pflicht": true,
+     "treffer": [
+      "sauberes arbeiten",
+      "ölwechsel",
+      "sorgfältig arbeiten",
+      "auffangwanne"
+     ]
+    },
+    {
+     "id": "k3",
+     "label": "Einsatz von Ölbindematten",
+     "pflicht": true,
+     "treffer": [
+      "ölbindematte",
+      "bindematte",
+      "ölvlies",
+      "bindemittel"
+     ]
+    }
+   ],
+   "soll": 3
+  },
+  {
+   "themengebiet": "umweltschutz",
+   "id": "umwelt-12",
+   "unterthema": "theorie",
+   "quellnummer": "Frage 10",
+   "titel": "Vorgehen bei Öl in der Bilge",
+   "frage": "Wie ist zu verfahren, wenn dennoch Öl in die Bilge gelangt?",
+   "musterloesung": {
+    "typ": "fliesstext",
+    "bloecke": [
+     {
+      "text": "Das Öl ist mit geeigneten Bindemitteln aufzunehmen und an Land fachgerecht zu entsorgen."
+     },
+     {
+      "text": "Ein Abpumpen ölhaltiger Bilgenflüssigkeit ins Gewässer ist unzulässig."
+     }
+    ]
+   },
+   "konzepte": [
+    {
+     "id": "k1",
+     "label": "Öl mit geeigneten Bindemitteln aufnehmen",
+     "pflicht": true,
+     "treffer": [
+      "bindemittel",
+      "ölbindematte",
+      "aufnehmen",
+      "ölvlies",
+      "aufsaugen"
+     ]
+    },
+    {
+     "id": "k2",
+     "label": "An Land fachgerecht entsorgen",
+     "pflicht": true,
+     "treffer": [
+      "an land entsorgen",
+      "fachgerecht",
+      "entsorgungsstelle",
+      "an land"
+     ]
+    },
+    {
+     "id": "k3",
+     "label": "Abpumpen ins Gewässer ist unzulässig",
+     "pflicht": true,
+     "verbot": true,
+     "treffer": [
+      "nicht abpumpen",
+      "kein abpumpen",
+      "nicht ins gewässer",
+      "unzulässig",
+      "verboten",
+      "nicht lenzen"
+     ],
+     "gegenteil": [
+      "abpumpen",
+      "ins gewässer pumpen",
+      "lenzen"
+     ]
+    }
+   ],
+   "soll": 3
+  },
+  {
+   "themengebiet": "umweltschutz",
+   "id": "umwelt-13",
+   "unterthema": "theorie",
+   "quellnummer": "Frage 11",
+   "titel": "Sondergebiete nach MARPOL",
+   "frage": "Was versteht man unter Sondergebieten im Sinne des MARPOL-Übereinkommens?",
+   "musterloesung": {
+    "typ": "fliesstext",
+    "bloecke": [
+     {
+      "text": "Sondergebiete sind besonders schutzbedürftige Seegebiete, für die strengere Einleitungs- und Entsorgungsverbote gelten als im übrigen Seeverkehr."
+     },
+     {
+      "text": "Die Ostsee zählt zu diesen Sondergebieten."
+     }
+    ]
+   },
+   "konzepte": [
+    {
+     "id": "k1",
+     "label": "Besonders schutzbedürftige Seegebiete",
+     "pflicht": true,
+     "treffer": [
+      "schutzbedürftig",
+      "besonders geschützt",
+      "empfindliche seegebiete",
+      "schützenswert"
+     ]
+    },
+    {
+     "id": "k2",
+     "label": "Strengere Einleitungs- und Entsorgungsverbote",
+     "pflicht": true,
+     "treffer": [
+      "strenger",
+      "einleitungsverbot",
+      "entsorgungsverbot",
+      "schärfere regeln",
+      "verbote"
+     ]
+    },
+    {
+     "id": "k3",
+     "label": "Als im übrigen Seeverkehr",
+     "treffer": [
+      "übrige seeverkehr",
+      "als sonst",
+      "im vergleich"
+     ]
+    },
+    {
+     "id": "k4",
+     "label": "Die Ostsee ist ein Sondergebiet",
+     "pflicht": true,
+     "treffer": [
+      "ostsee",
+      "baltisch"
+     ]
+    }
+   ],
+   "soll": 4
+  },
+  {
+   "themengebiet": "umweltschutz",
+   "id": "umwelt-14",
+   "unterthema": "theorie",
+   "quellnummer": "Frage 12",
+   "titel": "Abwasserentsorgung auf Ausbildungsfahrten",
+   "frage": "Welche Vorgaben gelten für die Abwasserentsorgung einer Ausbildungssegelyacht mit zwölf Personen ohne Abwasseraufbereitungsanlage?",
+   "dublettenGruppe": "faekalien-entsorgung",
+   "musterloesung": {
+    "typ": "fliesstext",
+    "bloecke": [
+     {
+      "text": "Fäkalien sind in einem dafür vorgesehenen Tank zu sammeln und ausschließlich an Land zu entsorgen."
+     },
+     {
+      "text": "Eine Einleitung ins Meer ist unzulässig."
+     }
+    ]
+   },
+   "konzepte": [
+    {
+     "id": "k1",
+     "label": "Keine ungereinigte Einleitung ins Meer",
+     "pflicht": true,
+     "verbot": true,
+     "treffer": [
+      "nicht ungereinigt",
+      "dürfen nicht eingeleitet",
+      "nicht ins meer",
+      "keine einleitung",
+      "unzulässig",
+      "verboten"
+     ],
+     "gegenteil": [
+      "ins meer einleiten",
+      "über bord pumpen",
+      "direkt einleiten"
+     ]
+    },
+    {
+     "id": "k2",
+     "label": "In einem Fäkalientank sammeln",
+     "pflicht": true,
+     "treffer": [
+      "fäkalientank",
+      "tank sammeln",
+      "schmutzwassertank",
+      "auffangtank",
+      "in einem tank",
+      "vorgesehenen tank"
+     ]
+    },
+    {
+     "id": "k3",
+     "label": "An einer zugelassenen Absaugstation an Land entsorgen",
+     "pflicht": true,
+     "treffer": [
+      "absaugstation",
+      "an land entsorgen",
+      "entsorgungsstation",
+      "an land"
+     ]
+    },
+    {
+     "id": "k4",
+     "label": "In Küsten- und Sondergebieten gelten strengere Regeln",
+     "treffer": [
+      "sondergebiet",
+      "küstengewässer",
+      "strenger",
+      "besonders streng"
+     ]
+    }
+   ],
+   "soll": 3
+  },
+  {
+   "themengebiet": "umweltschutz",
+   "id": "umwelt-15",
+   "unterthema": "theorie",
+   "quellnummer": "Frage 13",
+   "titel": "Schutzauflagen in Nationalparken",
+   "frage": "Wie erfährt der Sportschiffer, wo besondere Schutzauflagen in Nationalparken gelten?",
+   "musterloesung": {
+    "typ": "fliesstext",
+    "bloecke": [
+     {
+      "text": "Die Schutzauflagen sind in amtlichen Seekarten, Seehandbüchern, Bekanntmachungen für Seefahrer sowie durch Tonnen und Hinweistafeln gekennzeichnet."
+     }
+    ]
+   },
+   "konzepte": [
+    {
+     "id": "k1",
+     "label": "Amtliche Seekarten",
+     "pflicht": true,
+     "treffer": [
+      "seekarte",
+      "amtliche karte",
+      "karte"
+     ]
+    },
+    {
+     "id": "k2",
+     "label": "Seehandbücher",
+     "pflicht": true,
+     "treffer": [
+      "seehandbüch",
+      "handbüch",
+      "seehandbuch",
+      "handbuch",
+      "hafenhandbuch"
+     ]
+    },
+    {
+     "id": "k3",
+     "label": "Bekanntmachungen für Seefahrer",
+     "pflicht": true,
+     "treffer": [
+      "bekanntmachungen für seefahrer",
+      "nachrichten für seefahrer",
+      "bfs",
+      "nfs"
+     ]
+    },
+    {
+     "id": "k4",
+     "label": "Tonnen und Hinweistafeln vor Ort",
+     "pflicht": true,
+     "treffer": [
+      "tonnen",
+      "hinweistafel",
+      "beschilderung",
+      "schilder",
+      "betonnung"
+     ]
+    }
+   ],
+   "soll": 4
+  },
+  {
+   "themengebiet": "umweltschutz",
+   "id": "umwelt-16",
+   "unterthema": "theorie",
+   "quellnummer": "Frage 14",
+   "titel": "Zone I im Nationalpark Wattenmeer",
+   "frage": "Was bedeutet die Zone I im Nationalpark Wattenmeer?",
+   "musterloesung": {
+    "typ": "fliesstext",
+    "bloecke": [
+     {
+      "text": "Die Zone I ist die streng geschützte Kernzone des Nationalparks."
+     },
+     {
+      "text": "Das Befahren ist grundsätzlich verboten, Ausnahmen bestehen nur für ausgewiesene Fahrwasser."
+     }
+    ]
+   },
+   "konzepte": [
+    {
+     "id": "k1",
+     "label": "Streng geschützte Kernzone des Nationalparks",
+     "pflicht": true,
+     "treffer": [
+      "kernzone",
+      "streng geschützt",
+      "schutzzone",
+      "höchste schutzstufe"
+     ]
+    },
+    {
+     "id": "k2",
+     "label": "Das Befahren ist grundsätzlich verboten",
+     "pflicht": true,
+     "verbot": true,
+     "treffer": [
+      "befahren verboten",
+      "nicht befahren",
+      "grundsätzlich verboten",
+      "darf nicht befahren",
+      "sperrgebiet"
+     ],
+     "gegenteil": [
+      "darf befahren werden",
+      "befahren erlaubt",
+      "frei befahrbar"
+     ]
+    },
+    {
+     "id": "k3",
+     "label": "Ausnahmen nur für ausgewiesene Fahrwasser",
+     "pflicht": true,
+     "treffer": [
+      "ausgewiesene fahrwasser",
+      "ausnahme",
+      "fahrwasser",
+      "nur auf den fahrwassern"
+     ]
+    }
+   ],
+   "soll": 3
+  }
+ ]
+}
+</script>
+<script>
+globalThis.SSS_FRAGEN = JSON.parse(document.getElementById("fragen-daten").textContent);
+/* ----- js/config.js ----- */
+/* Zentrale Einstellungen. Alles, was man beim Nachjustieren anfassen will,
+   steht hier und nicht verstreut im Anwendungscode. */
+
+const APP = {
+  name: "SeeRecht",
+  untertitel: "Schifffahrtsrecht",
+  version: "1.0.0",
+  datenpfad: "data/fragen.json",
+  speicherschluessel: "seerecht-v1",
+};
+
+/** Strenge der Bewertung. Die Schwellen selbst stehen in bewertung.js. */
+const STRENGEN = [
+  { id: "mild", titel: "Mild", hinweis: "Kernaussagen genügen" },
+  { id: "normal", titel: "Normal", hinweis: "Prüfungsnah" },
+  { id: "streng", titel: "Streng", hinweis: "Nahezu vollständig" },
+];
+
+/** Übungsarten. */
+const MODI = {
+  themengebiet: { titel: "Themengebiet", hinweis: "Ein Gebiet gezielt üben" },
+  pruefungsmix: { titel: "Prüfungsmix", hinweis: "10 Fragen über alle Gebiete" },
+  wiederholung: { titel: "Wiederholung", hinweis: "Fällige Fragen aus der Wiedervorlage" },
+  markierte: { titel: "Markierte", hinweis: "Selbst vorgemerkte Fragen" },
+};
+
+/** Anzahl Fragen im Prüfungsmix. */
+const MIX_UMFANG = 10;
+
+/** Verteilung des Prüfungsmix, anteilig zur Grösse der Themengebiete. */
+const MIX_VERTEILUNG = {
+  "recht-allgemein": 2,
+  "solas-papiere-logbuch": 3,
+  sug: 2,
+  umweltschutz: 3,
+};
+
+/** Höchstzahl der Hinweise je Frage. */
+const MAX_HINWEISE = 2;
+
+/** Wiedervorlage nach Stufe, in Tagen. */
+const LEITNER_TAGE = [0, 1, 3, 7, 21];
+
+/** Gewichte für die Fragenauswahl. Höher heisst häufiger. */
+const GEWICHTE = {
+  nieBeantwortet: 3,
+  zuletztFalsch: 5,
+  zuletztTeilweise: 3,
+  zuletztRichtig: 1,
+  markiert: 2,
+};
+
+/** Selbstbewertung, die das automatische Urteil überschreibt. */
+const SELBSTURTEILE = [
+  { id: "richtig", titel: "Hatte ich", hinweis: "Alles Wesentliche genannt" },
+  { id: "teilweise", titel: "Teilweise", hinweis: "Kern getroffen, Lücken" },
+  { id: "falsch", titel: "Hatte ich nicht", hinweis: "Noch einmal ansehen" },
+];
+
+const URTEIL_TEXT = {
+  richtig: { kurz: "Richtig", klasse: "ok" },
+  teilweise: { kurz: "Teilweise", klasse: "skip" },
+  falsch: { kurz: "Nicht ausreichend", klasse: "no" },
+  leer: { kurz: "Keine Antwort", klasse: "skip" },
+};
+
+/* ----- js/bewertung.js ----- */
+/* ==========================================================================
+   Bewertung freier Antworten.
+   Bewusst ohne DOM-Zugriff, damit die Datei in Node getestet werden kann.
+
+   Gegenüber dem Seemannschaft-Trainer erweitert um:
+   - Verbotskonzepte: die Verneinung ist Teil der richtigen Antwort. Wird der
+     positive Kern ohne Verneinung genannt, gilt das Konzept nicht als fehlend,
+     sondern als gegenteilig beantwortet.
+   - Alternativgruppen: mehrere Konzepte, von denen eines genügt.
+   - Kumulative Fragen: alle Voraussetzungen müssen vorliegen.
+   ========================================================================== */
+
+const SCHWELLEN = {
+  mild: { richtig: 0.55, teilweise: 0.3 },
+  normal: { richtig: 0.7, teilweise: 0.4 },
+  streng: { richtig: 0.85, teilweise: 0.55 },
+};
+
+/** Höchste erreichbare Quote, wenn ein Pflichtkonzept fehlt. */
+const PFLICHT_DECKEL = 0.6;
+
+/** Höchste erreichbare Quote, wenn ein Konzept gegenteilig beantwortet wurde. */
+const GEGENTEIL_DECKEL = 0.5;
+
+/** Abzug auf die Quote je genutztem Hinweis. */
+const HINWEIS_ABZUG = 0.1;
+
+/** Wörter, die eine Verneinung anzeigen. */
+const VERNEINUNGEN = new Set([
+  "nicht",
+  "nie",
+  "niemals",
+  "kein",
+  "keine",
+  "keinen",
+  "keiner",
+  "keinem",
+  "keines",
+  "ohne",
+  "weder",
+  "keinesfalls",
+  "keineswegs",
+  "unzulaessig",
+  "verboten",
+  "untersagt",
+  // Wendungen, die inhaltlich ein Verbot ausdrücken, ohne "nicht" zu enthalten
+  "vermeiden",
+  "vermieden",
+  "verzichten",
+  "unterlassen",
+]);
+
+/** Wie viele Wörter vor einem Treffer auf Verneinung geprüft werden. */
+const VERNEINUNGSFENSTER = 3;
+
+/** Wie viele beliebige Wörter zwischen zwei Wörtern einer Wortfolge stehen dürfen. */
+const MAX_LUECKE = 2;
+
+/**
+ * Platzhalter für Satzgrenzen. Verhindert, dass eine Verneinung im vorigen
+ * Satz einen Treffer im nächsten Satz entwertet.
+ */
+const SATZGRENZE = "\u00b6";
+
+/**
+ * Vereinheitlicht Text für den Vergleich: Kleinschreibung, ß zu ss,
+ * Umlautfaltung, Satzzeichen zu Leerzeichen.
+ * Satzschlusszeichen bleiben als Grenzmarke erhalten.
+ */
+function normalisieren(text) {
+  return String(text ?? "")
+    .toLowerCase()
+    .replace(/ß/g, "ss")
+    .replace(/ä/g, "ae")
+    .replace(/ö/g, "oe")
+    .replace(/ü/g, "ue")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[.;:!?\n\r]+/g, ` ${SATZGRENZE} `)
+    .replace(new RegExp(`[^a-z0-9${SATZGRENZE}]+`, "g"), " ")
+    .trim();
+}
+
+/** Zerlegt normalisierten Text in Wörter. */
+function woerter(text) {
+  const n = normalisieren(text);
+  return n ? n.split(" ") : [];
+}
+
+/**
+ * Prüft, ob ein einzelnes Wort der Antwort zu einem Suchwort passt.
+ * Ab 6 Zeichen genügt Enthaltensein, damit Komposita greifen
+ * ("schiffsfuehr" trifft "Schiffsführer" und "Schiffsführung"),
+ * bei 5 Zeichen der Wortanfang, darunter genaue Gleichheit.
+ */
+function wortPasst(wort, suchwort) {
+  if (wort === SATZGRENZE || suchwort === SATZGRENZE) return false;
+  if (suchwort.length >= 6) return wort.includes(suchwort);
+  if (suchwort.length === 5) return wort.startsWith(suchwort);
+  return wort === suchwort;
+}
+
+/**
+ * Sucht eine Wortfolge in den Antwortwörtern. Zwischen zwei Wörtern der Folge
+ * dürfen bis zu MAX_LUECKE beliebige Wörter stehen.
+ * Gibt die Position des ersten Wortes zurück oder -1.
+ */
+function folgeFinden(antwortWoerter, suchWoerter) {
+  if (suchWoerter.length === 0) return -1;
+  for (let start = 0; start < antwortWoerter.length; start++) {
+    if (!wortPasst(antwortWoerter[start], suchWoerter[0])) continue;
+    let pos = start;
+    let vollstaendig = true;
+    for (let i = 1; i < suchWoerter.length; i++) {
+      let gefunden = -1;
+      const bis = Math.min(antwortWoerter.length - 1, pos + 1 + MAX_LUECKE);
+      for (let j = pos + 1; j <= bis; j++) {
+        if (wortPasst(antwortWoerter[j], suchWoerter[i])) {
+          gefunden = j;
+          break;
+        }
+      }
+      if (gefunden === -1) {
+        vollstaendig = false;
+        break;
+      }
+      pos = gefunden;
+    }
+    if (vollstaendig) return start;
+  }
+  return -1;
+}
+
+/** Prüft, ob im selben Satz unmittelbar vor der Fundstelle verneint wird. */
+function istVerneint(antwortWoerter, position) {
+  const von = Math.max(0, position - VERNEINUNGSFENSTER);
+  for (let i = position - 1; i >= von; i--) {
+    if (antwortWoerter[i] === SATZGRENZE) return false;
+    if (VERNEINUNGEN.has(antwortWoerter[i])) return true;
+  }
+  return false;
+}
+
+/** Enthält der Suchbegriff selbst eine Verneinung? */
+function suchbegriffVerneint(suchWoerter) {
+  return suchWoerter.some((w) => VERNEINUNGEN.has(w));
+}
+
+/**
+ * Prüft ein einzelnes Konzept gegen die Antwort.
+ * Rückgabe: { getroffen, verneint, gegenteilig, treffer }
+ */
+function konzeptPruefen(konzept, antwortWoerter) {
+  // Verbotskonzept: die Verneinung gehört zur richtigen Antwort.
+  if (konzept.verbot) {
+    for (const eintrag of konzept.treffer) {
+      const such = woerter(eintrag);
+      const pos = folgeFinden(antwortWoerter, such);
+      if (pos === -1) continue;
+      // Enthält der Eintrag die Verneinung selbst, genügt der Fund.
+      if (suchbegriffVerneint(such) || istVerneint(antwortWoerter, pos)) {
+        return { getroffen: true, verneint: false, gegenteilig: false, treffer: eintrag };
+      }
+    }
+    // Der positive Kern ohne Verneinung ist die inhaltliche Umkehrung.
+    for (const eintrag of konzept.gegenteil || []) {
+      const such = woerter(eintrag);
+      const pos = folgeFinden(antwortWoerter, such);
+      if (pos === -1) continue;
+      if (istVerneint(antwortWoerter, pos)) {
+        return { getroffen: true, verneint: false, gegenteilig: false, treffer: eintrag };
+      }
+      return { getroffen: false, verneint: false, gegenteilig: true, treffer: eintrag };
+    }
+    return { getroffen: false, verneint: false, gegenteilig: false, treffer: null };
+  }
+
+  // Eine verneinte Fundstelle beendet die Suche nicht: dieselbe Aussage kann
+  // an anderer Stelle unverneint stehen ("... ist zu melden. Das Unterlassen
+  // der Meldung ..."). Erst wenn kein unverneinter Treffer bleibt, zählt die
+  // Verneinung.
+  let verneinteFundstelle = null;
+
+  for (const eintrag of konzept.treffer) {
+    const such = woerter(eintrag);
+    const pos = folgeFinden(antwortWoerter, such);
+    if (pos === -1) continue;
+
+    if (istVerneint(antwortWoerter, pos) && !konzept.verneinend) {
+      verneinteFundstelle = eintrag;
+      continue;
+    }
+    return { getroffen: true, verneint: false, gegenteilig: false, treffer: eintrag };
+  }
+
+  if (verneinteFundstelle) {
+    return { getroffen: false, verneint: true, gegenteilig: false, treffer: verneinteFundstelle };
+  }
+  return { getroffen: false, verneint: false, gegenteilig: false, treffer: null };
+}
+
+/**
+ * Fasst Konzepte zu Wertungseinheiten zusammen. Konzepte mit derselben
+ * `alternativgruppe` bilden eine Einheit: eines von ihnen genügt, und die
+ * Gruppe zählt als ein einziger geforderter Aspekt.
+ */
+function einheitenBilden(konzepte) {
+  const einheiten = [];
+  const nachGruppe = new Map();
+
+  for (const k of konzepte) {
+    if (!k.alternativgruppe) {
+      einheiten.push({ mitglieder: [k], alternativ: false });
+      continue;
+    }
+    if (!nachGruppe.has(k.alternativgruppe)) {
+      const einheit = { mitglieder: [], alternativ: true, gruppe: k.alternativgruppe };
+      nachGruppe.set(k.alternativgruppe, einheit);
+      einheiten.push(einheit);
+    }
+    nachGruppe.get(k.alternativgruppe).mitglieder.push(k);
+  }
+  return einheiten;
+}
+
+/**
+ * Bewertet eine Antwort gegen eine Frage.
+ *
+ * @param {object} frage      Frage aus fragen.json
+ * @param {string} antwort    Freitext des Anwenders
+ * @param {object} optionen   { strenge, hinweise }
+ * @returns {object} Ergebnis mit Quote, Urteil und Einzeltreffern
+ */
+function bewerten(frage, antwort, optionen = {}) {
+  const strenge = optionen.strenge || "normal";
+  const hinweise = optionen.hinweise || 0;
+  const schwelle = SCHWELLEN[strenge] || SCHWELLEN.normal;
+  const antwortWoerter = woerter(antwort);
+  const kumulativ = frage.logik === "kumulativ";
+
+  const einzeln = new Map();
+  for (const k of frage.konzepte) {
+    einzeln.set(k.id, konzeptPruefen(k, antwortWoerter));
+  }
+
+  const einheiten = einheitenBilden(frage.konzepte);
+  const einheitGetroffen = einheiten.map((e) =>
+    e.mitglieder.some((k) => einzeln.get(k.id).getroffen)
+  );
+
+  const konzepte = frage.konzepte.map((k) => {
+    const index = einheiten.findIndex((e) => e.mitglieder.includes(k));
+    const eigen = einzeln.get(k.id);
+    return {
+      id: k.id,
+      label: k.label,
+      pflicht: !!k.pflicht || kumulativ,
+      alternativ: einheiten[index].alternativ,
+      // In einer Alternativgruppe gilt jedes Mitglied als erfüllt, sobald eines trifft.
+      getroffen: einheiten[index].alternativ ? einheitGetroffen[index] : eigen.getroffen,
+      selbstGetroffen: eigen.getroffen,
+      verneint: eigen.verneint,
+      gegenteilig: eigen.gegenteilig,
+    };
+  });
+
+  const getroffen = einheitGetroffen.filter(Boolean).length;
+  const soll = Math.min(
+    frage.mindestanzahl || frage.soll || einheiten.length,
+    einheiten.length
+  );
+
+  const fehlendePflicht = konzepte.filter((k) => k.pflicht && !k.getroffen).length;
+  const gegenteilige = konzepte.filter((k) => k.gegenteilig);
+
+  let quote = soll > 0 ? Math.min(getroffen / soll, 1) : 0;
+  if (fehlendePflicht > 0) quote = Math.min(quote, PFLICHT_DECKEL);
+  if (gegenteilige.length > 0) quote = Math.min(quote, GEGENTEIL_DECKEL);
+  quote = Math.max(0, quote - hinweise * HINWEIS_ABZUG);
+
+  let urteil;
+  if (antwortWoerter.length === 0) urteil = "leer";
+  else if (kumulativ && fehlendePflicht >= 2) urteil = "falsch";
+  else if (quote >= schwelle.richtig) urteil = "richtig";
+  else if (quote >= schwelle.teilweise) urteil = "teilweise";
+  else urteil = "falsch";
+
+  return {
+    urteil,
+    quote,
+    prozent: Math.round(quote * 100),
+    getroffen,
+    soll,
+    gesamt: einheiten.length,
+    kumulativ,
+    pflichtFehlt: fehlendePflicht > 0,
+    fehlendePflicht,
+    gegenteilig: gegenteilige,
+    konzepte,
+    fehlend: konzepte.filter((k) => !k.getroffen),
+  };
+}
+
+/** Wählt das nächste noch nicht getroffene Konzept als Hinweis. */
+function hinweisWaehlen(ergebnis) {
+  const offen = ergebnis.konzepte.filter((k) => !k.getroffen);
+  if (offen.length === 0) return null;
+  const pflicht = offen.find((k) => k.pflicht);
+  return (pflicht || offen[0]).label;
+}
+
+/* ----- js/speicher.js ----- */
+/* ==========================================================================
+   Lernstand: Leitner-Stufen, Statistik, Markierungen, Export und Import.
+   Fällt auf einen reinen Arbeitsspeicher zurück, wenn localStorage nicht
+   verfügbar ist (privater Modus, eingeschränkte Umgebungen).
+   ========================================================================== */
+
+
+const TAG_MS = 24 * 60 * 60 * 1000;
+
+let speicherVorhanden = true;
+let ersatz = null;
+
+function lesen() {
+  if (speicherVorhanden) {
+    try {
+      const roh = window.localStorage.getItem(APP.speicherschluessel);
+      return roh ? JSON.parse(roh) : leererStand();
+    } catch {
+      speicherVorhanden = false;
+    }
+  }
+  if (!ersatz) ersatz = leererStand();
+  return ersatz;
+}
+
+function schreiben(stand) {
+  if (speicherVorhanden) {
+    try {
+      window.localStorage.setItem(APP.speicherschluessel, JSON.stringify(stand));
+      return;
+    } catch {
+      speicherVorhanden = false;
+    }
+  }
+  ersatz = stand;
+}
+
+function leererStand() {
+  return {
+    version: 1,
+    einstellungen: { strenge: "normal" },
+    fragen: {},
+    verlauf: [],
+  };
+}
+
+function istDauerhaft() {
+  return speicherVorhanden;
+}
+
+function einstellungen() {
+  return lesen().einstellungen;
+}
+
+function einstellungSetzen(schluessel, wert) {
+  const stand = lesen();
+  stand.einstellungen[schluessel] = wert;
+  schreiben(stand);
+}
+
+/** Lernstand einer einzelnen Frage. */
+function fragenstand(id) {
+  const stand = lesen();
+  return (
+    stand.fragen[id] || {
+      stufe: 0,
+      faellig: 0,
+      versuche: 0,
+      richtig: 0,
+      letztesUrteil: null,
+      markiert: false,
+    }
+  );
+}
+
+/** Schreibt das Ergebnis eines Versuchs fort und setzt die Wiedervorlage. */
+function ergebnisBuchen(id, urteil, prozent) {
+  const stand = lesen();
+  const eintrag = stand.fragen[id] || fragenstand(id);
+
+  eintrag.versuche += 1;
+  eintrag.letztesUrteil = urteil;
+  eintrag.letztesProzent = prozent;
+  eintrag.zuletzt = Date.now();
+
+  if (urteil === "richtig") {
+    eintrag.richtig += 1;
+    eintrag.stufe = Math.min(eintrag.stufe + 1, LEITNER_TAGE.length - 1);
+  } else if (urteil === "teilweise") {
+    eintrag.stufe = Math.max(1, eintrag.stufe);
+  } else {
+    eintrag.stufe = 0;
+  }
+
+  eintrag.faellig = Date.now() + LEITNER_TAGE[eintrag.stufe] * TAG_MS;
+  stand.fragen[id] = eintrag;
+  stand.verlauf.push({ id, urteil, prozent, zeit: Date.now() });
+  if (stand.verlauf.length > 2000) stand.verlauf = stand.verlauf.slice(-2000);
+
+  schreiben(stand);
+  return eintrag;
+}
+
+function markierungUmschalten(id) {
+  const stand = lesen();
+  const eintrag = stand.fragen[id] || fragenstand(id);
+  eintrag.markiert = !eintrag.markiert;
+  stand.fragen[id] = eintrag;
+  schreiben(stand);
+  return eintrag.markiert;
+}
+
+function istMarkiert(id) {
+  return !!fragenstand(id).markiert;
+}
+
+function markierteIds() {
+  const stand = lesen();
+  return Object.keys(stand.fragen).filter((id) => stand.fragen[id].markiert);
+}
+
+/** Ids aller Fragen, deren Wiedervorlage erreicht ist. */
+function faelligeIds(alleIds) {
+  const stand = lesen();
+  const jetzt = Date.now();
+  return alleIds.filter((id) => {
+    const e = stand.fragen[id];
+    if (!e || !e.versuche) return false;
+    return e.faellig <= jetzt;
+  });
+}
+
+/** Gewicht einer Frage für die Auswahl: schwach beantwortete kommen häufiger. */
+function gewicht(id) {
+  const e = fragenstand(id);
+  if (!e.versuche) return GEWICHTE.nieBeantwortet;
+  let g;
+  if (e.letztesUrteil === "richtig") g = GEWICHTE.zuletztRichtig;
+  else if (e.letztesUrteil === "teilweise") g = GEWICHTE.zuletztTeilweise;
+  else g = GEWICHTE.zuletztFalsch;
+  if (e.markiert) g += GEWICHTE.markiert;
+  return g;
+}
+
+/** Zieht ohne Zurücklegen aus einer Liste, gewichtet nach Lernstand. */
+function gewichtetZiehen(ids, anzahl) {
+  const rest = [...ids];
+  const gezogen = [];
+  while (gezogen.length < anzahl && rest.length > 0) {
+    const gewichte = rest.map((id) => gewicht(id));
+    const summe = gewichte.reduce((a, b) => a + b, 0);
+    let wurf = Math.random() * summe;
+    let index = 0;
+    while (index < rest.length - 1) {
+      wurf -= gewichte[index];
+      if (wurf <= 0) break;
+      index += 1;
+    }
+    gezogen.push(rest.splice(index, 1)[0]);
+  }
+  return gezogen;
+}
+
+/** Kennzahlen je Themengebiet für die Fortschrittsansicht. */
+function fortschritt(fragen) {
+  const stand = lesen();
+  const jeGebiet = new Map();
+
+  for (const frage of fragen) {
+    if (!jeGebiet.has(frage.themengebiet)) {
+      jeGebiet.set(frage.themengebiet, {
+        gesamt: 0,
+        bearbeitet: 0,
+        richtig: 0,
+        teilweise: 0,
+        falsch: 0,
+        faellig: 0,
+      });
+    }
+    const z = jeGebiet.get(frage.themengebiet);
+    z.gesamt += 1;
+    const e = stand.fragen[frage.id];
+    if (e && e.versuche) {
+      z.bearbeitet += 1;
+      if (e.letztesUrteil === "richtig") z.richtig += 1;
+      else if (e.letztesUrteil === "teilweise") z.teilweise += 1;
+      else z.falsch += 1;
+      if (e.faellig <= Date.now()) z.faellig += 1;
+    }
+  }
+  return jeGebiet;
+}
+
+/** Das Themengebiet mit der schwächsten Quote, für die zehnte Mixfrage. */
+function schwaechstesGebiet(fragen) {
+  const zahlen = fortschritt(fragen);
+  let schlechtestes = null;
+  let schlechtesteQuote = 2;
+  for (const [gebiet, z] of zahlen) {
+    if (!z.bearbeitet) continue;
+    const quote = z.richtig / z.bearbeitet;
+    if (quote < schlechtesteQuote) {
+      schlechtesteQuote = quote;
+      schlechtestes = gebiet;
+    }
+  }
+  return schlechtestes;
+}
+
+function standAusgeben() {
+  return JSON.stringify(
+    { app: APP.name, version: APP.version, erstellt: new Date().toISOString(), stand: lesen() },
+    null,
+    2
+  );
+}
+
+/** Übernimmt einen exportierten Lernstand. Wirft bei ungültigem Inhalt. */
+function standEinlesen(text) {
+  const daten = JSON.parse(text);
+  const stand = daten.stand || daten;
+  if (!stand || typeof stand !== "object" || typeof stand.fragen !== "object") {
+    throw new Error("Die Datei enthält keinen gültigen Lernstand.");
+  }
+  schreiben({
+    version: 1,
+    einstellungen: stand.einstellungen || { strenge: "normal" },
+    fragen: stand.fragen || {},
+    verlauf: Array.isArray(stand.verlauf) ? stand.verlauf : [],
+  });
+  return Object.keys(stand.fragen || {}).length;
+}
+
+function standLoeschen() {
+  schreiben(leererStand());
+}
+
+/* ----- js/app.js ----- */
+/* ==========================================================================
+   Ablaufsteuerung und Oberfläche.
+   ========================================================================== */
+
+
+const $ = (id) => document.getElementById(id);
+
+/* ---------- Zustand ---------- */
+
+const zustand = {
+  daten: null,
+  fragenNachId: new Map(),
+  modus: "themengebiet",
+  gebiet: null,
+  unterthema: null,
+  runde: [],
+  index: 0,
+  ergebnisse: [],
+  aktuell: null,
+  hinweise: 0,
+  bewertet: null,
+  selbsturteil: null,
+  vorigerSchirm: "screen-start",
+};
+
+/* ---------- Hilfsfunktionen ---------- */
+
+function schirmZeigen(id) {
+  for (const el of document.querySelectorAll("main .screen")) {
+    el.hidden = el.id !== id;
+  }
+  $("btn-zurueck").hidden = id === "screen-start";
+  window.scrollTo(0, 0);
+}
+
+function krumeSetzen(text) {
+  $("crumb").textContent = text;
+}
+
+let toastTimer = null;
+function toast(text) {
+  const el = $("toast");
+  el.textContent = text;
+  el.hidden = false;
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => {
+    el.hidden = true;
+  }, 2600);
+}
+
+function gebietTitel(id) {
+  const g = zustand.daten.themengebiete.find((t) => t.id === id);
+  return g ? g.titel : id;
+}
+
+function auswahlBauen(behaelter, eintraege, aktiv, beiWahl) {
+  behaelter.innerHTML = "";
+  for (const e of eintraege) {
+    const knopf = document.createElement("button");
+    knopf.type = "button";
+    knopf.className = "choice";
+    knopf.setAttribute("role", "radio");
+    knopf.setAttribute("aria-checked", String(e.id === aktiv));
+    knopf.innerHTML = `<span class="choice-title"></span>${
+      e.hinweis ? '<span class="choice-sub"></span>' : ""
+    }`;
+    knopf.querySelector(".choice-title").textContent = e.titel;
+    if (e.hinweis) knopf.querySelector(".choice-sub").textContent = e.hinweis;
+    knopf.addEventListener("click", () => {
+      for (const k of behaelter.querySelectorAll(".choice")) {
+        k.setAttribute("aria-checked", "false");
+      }
+      knopf.setAttribute("aria-checked", "true");
+      beiWahl(e.id);
+    });
+    behaelter.appendChild(knopf);
+  }
+}
+
+/* ---------- Startseite ---------- */
+
+function startAufbauen() {
+  const eintraege = Object.entries(MODI).map(([id, m]) => ({
+    id,
+    titel: m.titel,
+    hinweis: m.hinweis,
+  }));
+  auswahlBauen($("modus-choices"), eintraege, zustand.modus, (id) => {
+    zustand.modus = id;
+  });
+
+  const gesamt = zustand.daten.fragen.length;
+  const gebiete = zustand.daten.themengebiete.length;
+  $("start-lede").textContent =
+    `${gesamt} Prüfungsfragen aus ${gebiete} Themengebieten. ` +
+    "Antwort frei formulieren, danach mit der Musterlösung abgleichen.";
+  krumeSetzen("Schifffahrtsrecht");
+  schirmZeigen("screen-start");
+}
+
+/* ---------- Themenauswahl ---------- */
+
+function themenAufbauen() {
+  const zahlen = fortschritt(zustand.daten.fragen);
+  const eintraege = zustand.daten.themengebiete.map((g) => {
+    const z = zahlen.get(g.id) || { bearbeitet: 0, gesamt: g.anzahl };
+    return {
+      id: g.id,
+      titel: g.titel,
+      hinweis: `${z.bearbeitet} von ${z.gesamt} bearbeitet`,
+    };
+  });
+
+  auswahlBauen($("themen-choices"), eintraege, zustand.gebiet, (id) => {
+    zustand.gebiet = id;
+    zustand.unterthema = null;
+    unterthemenAufbauen(id);
+    $("btn-themen-start").disabled = false;
+  });
+
+  $("unterthema-block").hidden = true;
+  $("btn-themen-start").disabled = !zustand.gebiet;
+  if (zustand.gebiet) unterthemenAufbauen(zustand.gebiet);
+
+  krumeSetzen("Themengebiet wählen");
+  schirmZeigen("screen-themen");
+}
+
+function unterthemenAufbauen(gebietId) {
+  const gebiet = zustand.daten.themengebiete.find((g) => g.id === gebietId);
+  const block = $("unterthema-block");
+  if (!gebiet || gebiet.unterthemen.length < 2) {
+    block.hidden = true;
+    return;
+  }
+  const eintraege = [
+    { id: null, titel: "Alle Unterthemen", hinweis: `${gebiet.anzahl} Fragen` },
+    ...gebiet.unterthemen.map((u) => {
+      const anzahl = zustand.daten.fragen.filter(
+        (f) => f.themengebiet === gebietId && f.unterthema === u.id
+      ).length;
+      return { id: u.id, titel: u.titel, hinweis: `${anzahl} Fragen` };
+    }),
+  ];
+  auswahlBauen($("unterthema-choices"), eintraege, zustand.unterthema, (id) => {
+    zustand.unterthema = id;
+  });
+  block.hidden = false;
+}
+
+/* ---------- Runde zusammenstellen ---------- */
+
+function rundeStarten() {
+  let ids = [];
+
+  if (zustand.modus === "themengebiet") {
+    ids = zustand.daten.fragen
+      .filter(
+        (f) =>
+          f.themengebiet === zustand.gebiet &&
+          (!zustand.unterthema || f.unterthema === zustand.unterthema)
+      )
+      .map((f) => f.id);
+    ids = gewichtetZiehen(ids, ids.length);
+  } else if (zustand.modus === "pruefungsmix") {
+    ids = mixZusammenstellen();
+  } else if (zustand.modus === "wiederholung") {
+    const alle = zustand.daten.fragen.map((f) => f.id);
+    ids = gewichtetZiehen(faelligeIds(alle), 20);
+  } else if (zustand.modus === "markierte") {
+    ids = gewichtetZiehen(markierteIds(), 30);
+  }
+
+  if (ids.length === 0) {
+    const texte = {
+      wiederholung: "Zurzeit ist keine Frage zur Wiederholung fällig.",
+      markierte: "Es ist noch keine Frage gemerkt.",
+    };
+    toast(texte[zustand.modus] || "Für diese Auswahl gibt es keine Fragen.");
+    return;
+  }
+
+  zustand.runde = ids;
+  zustand.index = 0;
+  zustand.ergebnisse = [];
+  frageZeigen();
+}
+
+/** Anteilig zur Grösse der Themengebiete, Restplätze aus dem schwächsten Gebiet. */
+function mixZusammenstellen() {
+  const gewaehlt = [];
+  const belegteGruppen = new Set();
+
+  const passt = (id) => {
+    const f = zustand.fragenNachId.get(id);
+    if (!f.dublettenGruppe) return true;
+    return !belegteGruppen.has(f.dublettenGruppe);
+  };
+  const merken = (id) => {
+    const f = zustand.fragenNachId.get(id);
+    if (f.dublettenGruppe) belegteGruppen.add(f.dublettenGruppe);
+    gewaehlt.push(id);
+  };
+
+  for (const gebiet of zustand.daten.themengebiete) {
+    const anzahl = MIX_VERTEILUNG[gebiet.id] ?? 1;
+    const kandidaten = zustand.daten.fragen
+      .filter((f) => f.themengebiet === gebiet.id)
+      .map((f) => f.id)
+      .filter(passt);
+    for (const id of gewichtetZiehen(kandidaten, anzahl)) merken(id);
+  }
+
+  while (gewaehlt.length < MIX_UMFANG) {
+    const schwach = schwaechstesGebiet(zustand.daten.fragen);
+    const grundmenge = zustand.daten.fragen
+      .filter((f) => !schwach || f.themengebiet === schwach)
+      .map((f) => f.id)
+      .filter((id) => !gewaehlt.includes(id) && passt(id));
+    const rest = grundmenge.length
+      ? grundmenge
+      : zustand.daten.fragen.map((f) => f.id).filter((id) => !gewaehlt.includes(id));
+    if (!rest.length) break;
+    merken(gewichtetZiehen(rest, 1)[0]);
+  }
+
+  return gewaehlt.slice(0, MIX_UMFANG);
+}
+
+/* ---------- Frage anzeigen ---------- */
+
+function frageZeigen() {
+  const id = zustand.runde[zustand.index];
+  const frage = zustand.fragenNachId.get(id);
+  zustand.aktuell = frage;
+  zustand.hinweise = 0;
+  zustand.bewertet = null;
+  zustand.selbsturteil = null;
+
+  const nummer = zustand.index + 1;
+  $("meter-fill").style.width = `${(zustand.index / zustand.runde.length) * 100}%`;
+  $("frage-label").textContent =
+    `Frage ${nummer} von ${zustand.runde.length} · ${gebietTitel(frage.themengebiet)}`;
+  $("frage-titel").textContent = frage.titel || "";
+  $("frage-text").textContent = frage.frage;
+
+  const sachverhalt = $("sachverhalt");
+  sachverhalt.hidden = !frage.sachverhalt;
+  if (frage.sachverhalt) {
+    $("sachverhalt-text").textContent = frage.sachverhalt;
+    $("sachverhalt-marke").hidden = !frage.sachverhaltRekonstruiert;
+  }
+
+  const anmerkung = $("frage-anmerkung");
+  anmerkung.hidden = !frage.anmerkung;
+  if (frage.anmerkung) anmerkung.textContent = frage.anmerkung;
+
+  const feld = $("answer-text");
+  feld.value = "";
+  feld.disabled = false;
+  $("hinweis-chips").innerHTML = "";
+  $("hinweis-note").hidden = true;
+  $("rueckmeldung").hidden = true;
+  $("btn-pruefen").hidden = false;
+  $("btn-hinweis").hidden = false;
+  $("btn-hinweis").disabled = false;
+  $("btn-ueberspringen").hidden = false;
+  markierungAnzeigen();
+
+  krumeSetzen(gebietTitel(frage.themengebiet));
+  schirmZeigen("screen-frage");
+  feld.focus();
+}
+
+function markierungAnzeigen() {
+  const markiert = istMarkiert(zustand.aktuell.id);
+  $("btn-markieren").textContent = markiert ? "Gemerkt ✓" : "Merken";
+}
+
+/* ---------- Prüfen und Rückmeldung ---------- */
+
+function antwortPruefen() {
+  const frage = zustand.aktuell;
+  const antwort = $("answer-text").value;
+  const strenge = einstellungen().strenge || "normal";
+  const ergebnis = bewerten(frage, antwort, { strenge, hinweise: zustand.hinweise });
+  zustand.bewertet = ergebnis;
+  rueckmeldungZeigen(ergebnis);
+}
+
+function aufloesen() {
+  const frage = zustand.aktuell;
+  const ergebnis =
+    zustand.bewertet ||
+    bewerten(frage, $("answer-text").value, {
+      strenge: einstellungen().strenge || "normal",
+      hinweise: zustand.hinweise,
+    });
+  zustand.bewertet = ergebnis;
+  rueckmeldungZeigen(ergebnis);
+  loesungOeffnen();
+}
+
+function rueckmeldungZeigen(ergebnis) {
+  const text = URTEIL_TEXT[ergebnis.urteil];
+  const verdict = $("verdict");
+  verdict.className = `verdict ${text.klasse}`;
+  $("verdict-head").textContent = text.kurz;
+  const teile = [`<b>${ergebnis.getroffen} von ${ergebnis.soll}</b> geforderten Aspekten erkannt`];
+  if (ergebnis.gegenteilig.length) {
+    teile.push(
+      ergebnis.gegenteilig.length === 1
+        ? "ein Punkt gegenteilig"
+        : `${ergebnis.gegenteilig.length} Punkte gegenteilig`
+    );
+  }
+  if (ergebnis.pflichtFehlt) {
+    teile.push(
+      ergebnis.kumulativ
+        ? `${ergebnis.fehlendePflicht} von ${ergebnis.gesamt} Voraussetzungen fehlen`
+        : "ein Kernpunkt fehlt"
+    );
+  }
+  if (zustand.hinweise) {
+    teile.push(`${zustand.hinweise} Hinweis${zustand.hinweise > 1 ? "e" : ""}`);
+  }
+  $("verdict-sub").innerHTML = teile.join(" · ");
+
+  const gegenBlock = $("gegenteil-block");
+  const gegenChips = $("gegenteil-chips");
+  gegenChips.innerHTML = "";
+  gegenBlock.hidden = ergebnis.gegenteilig.length === 0;
+  for (const k of ergebnis.gegenteilig) {
+    const chip = document.createElement("span");
+    chip.className = "chip gegenteil";
+    chip.innerHTML = '<i aria-hidden="true">!</i>';
+    chip.append(k.label);
+    gegenChips.appendChild(chip);
+  }
+
+  const chips = $("konzept-chips");
+  chips.innerHTML = "";
+  for (const k of ergebnis.konzepte) {
+    const chip = document.createElement("span");
+    chip.className = `chip ${k.getroffen ? "hit" : "miss"}`;
+    chip.innerHTML = `<i aria-hidden="true">${k.getroffen ? "✓" : "·"}</i>`;
+    let zusatz = "";
+    if (k.alternativ) zusatz = " (eine Alternative genügt)";
+    else if (k.pflicht) zusatz = " (Kernpunkt)";
+    chip.append(k.label + zusatz);
+    chips.appendChild(chip);
+  }
+
+  auswahlBauen($("selbst-choices"), SELBSTURTEILE, zustand.selbsturteil, (id) => {
+    zustand.selbsturteil = id;
+  });
+
+  $("btn-pruefen").hidden = true;
+  $("btn-hinweis").hidden = true;
+  $("btn-ueberspringen").hidden = true;
+  $("answer-text").disabled = true;
+  $("rueckmeldung").hidden = false;
+  $("btn-weiter").focus();
+}
+
+function hinweisGeben() {
+  const frage = zustand.aktuell;
+  if (zustand.hinweise >= MAX_HINWEISE) return;
+  const zwischenstand = bewerten(frage, $("answer-text").value, {
+    strenge: einstellungen().strenge || "normal",
+  });
+  const hinweis = hinweisWaehlen(zwischenstand);
+  if (!hinweis) {
+    toast("Es fehlt nichts mehr.");
+    return;
+  }
+  zustand.hinweise += 1;
+
+  const chip = document.createElement("span");
+  chip.className = "chip";
+  chip.innerHTML = '<i aria-hidden="true">?</i>';
+  chip.append(hinweis);
+  $("hinweis-chips").appendChild(chip);
+
+  const note = $("hinweis-note");
+  note.hidden = false;
+  note.textContent = `${zustand.hinweise} von ${MAX_HINWEISE} Hinweisen genutzt, je 10 Prozentpunkte Abzug.`;
+  if (zustand.hinweise >= MAX_HINWEISE) $("btn-hinweis").disabled = true;
+}
+
+function weiter() {
+  const frage = zustand.aktuell;
+  const ergebnis = zustand.bewertet;
+  const urteil = zustand.selbsturteil || ergebnis.urteil;
+  const gebucht = urteil === "leer" ? "falsch" : urteil;
+
+  ergebnisBuchen(frage.id, gebucht, ergebnis.prozent);
+  zustand.ergebnisse.push({
+    id: frage.id,
+    urteil: gebucht,
+    automatisch: ergebnis.urteil,
+    prozent: ergebnis.prozent,
+  });
+
+  zustand.index += 1;
+  if (zustand.index >= zustand.runde.length) ergebnisZeigen();
+  else frageZeigen();
+}
+
+function ueberspringen() {
+  ergebnisBuchen(zustand.aktuell.id, "falsch", 0);
+  zustand.ergebnisse.push({
+    id: zustand.aktuell.id,
+    urteil: "uebersprungen",
+    automatisch: "leer",
+    prozent: 0,
+  });
+  zustand.index += 1;
+  if (zustand.index >= zustand.runde.length) ergebnisZeigen();
+  else frageZeigen();
+}
+
+/* ---------- Ergebnis der Runde ---------- */
+
+function ergebnisZeigen() {
+  const gesamt = zustand.ergebnisse.length;
+  const richtig = zustand.ergebnisse.filter((e) => e.urteil === "richtig").length;
+  const teilweise = zustand.ergebnisse.filter((e) => e.urteil === "teilweise").length;
+  const quote = gesamt ? Math.round((richtig / gesamt) * 100) : 0;
+
+  $("ergebnis-score").textContent = `${quote} %`;
+  $("ergebnis-zahl").textContent = `${richtig}/${gesamt}`;
+  $("ergebnis-detail").textContent = `richtig · ${teilweise} teilweise`;
+
+  const liste = $("misslist");
+  liste.innerHTML = "";
+  const offene = zustand.ergebnisse.filter((e) => e.urteil !== "richtig");
+  $("miss-eyebrow").hidden = offene.length === 0;
+
+  for (const e of offene) {
+    const frage = zustand.fragenNachId.get(e.id);
+    const zeile = document.createElement("button");
+    zeile.type = "button";
+    zeile.className = `miss${e.urteil === "uebersprungen" ? " skipped" : ""}`;
+    zeile.innerHTML = "<b></b><span></span>";
+    zeile.querySelector("b").textContent = frage.quellnummer.replace("Frage ", "F");
+    zeile.querySelector("span").textContent = frage.titel || frage.frage;
+    zeile.addEventListener("click", () => {
+      zustand.aktuell = frage;
+      loesungOeffnen();
+    });
+    liste.appendChild(zeile);
+  }
+
+  krumeSetzen("Ergebnis");
+  schirmZeigen("screen-ergebnis");
+}
+
+/* ---------- Musterlösung ---------- */
+
+function loesungOeffnen() {
+  const frage = zustand.aktuell;
+  $("loesung-titel").textContent = frage.titel || frage.frage;
+
+  const body = $("loesung-body");
+  body.innerHTML = "";
+
+  const frageAbsatz = absatz(frage.frage);
+  frageAbsatz.classList.add("loesung-frage");
+  body.appendChild(frageAbsatz);
+
+  if (frage.sachverhalt) {
+    const sv = absatz(frage.sachverhalt);
+    sv.classList.add("loesung-sachverhalt");
+    body.appendChild(sv);
+  }
+
+  const ml = frage.musterloesung;
+  if (ml.einleitung) body.appendChild(absatz(ml.einleitung));
+
+  for (const block of ml.bloecke) {
+    if (block.titel) {
+      const h = document.createElement("p");
+      h.className = "help-h";
+      h.textContent = block.titel;
+      body.appendChild(h);
+    }
+    if (block.text) body.appendChild(absatz(block.text));
+    if (Array.isArray(block.punkte)) {
+      const ul = document.createElement("ul");
+      ul.className = "loesung-liste";
+      for (const p of block.punkte) {
+        const li = document.createElement("li");
+        li.textContent = p;
+        ul.appendChild(li);
+      }
+      body.appendChild(ul);
+    }
+  }
+
+  if (frage.anmerkung) {
+    const hr = document.createElement("hr");
+    hr.className = "keyline";
+    body.appendChild(hr);
+    const a = absatz(frage.anmerkung);
+    a.classList.add("anmerkung");
+    body.appendChild(a);
+  }
+
+  const quelle = document.createElement("p");
+  quelle.className = "loesung-quelle";
+  quelle.textContent = `${gebietTitel(frage.themengebiet)} · ${frage.quellnummer}`;
+  body.appendChild(quelle);
+
+  panelOeffnen("sheet-loesung");
+}
+
+function absatz(text) {
+  const p = document.createElement("p");
+  p.className = "para";
+  p.textContent = text;
+  return p;
+}
+
+/* ---------- Fortschritt ---------- */
+
+function fortschrittZeigen() {
+  const zahlen = fortschritt(zustand.daten.fragen);
+  const behaelter = $("fortschritt-inhalt");
+  behaelter.innerHTML = "";
+
+  let bearbeitet = 0;
+  let richtig = 0;
+  for (const z of zahlen.values()) {
+    bearbeitet += z.bearbeitet;
+    richtig += z.richtig;
+  }
+  $("fortschritt-lede").textContent = bearbeitet
+    ? `${bearbeitet} von ${zustand.daten.fragen.length} Fragen bearbeitet, davon ${richtig} zuletzt richtig.`
+    : "Noch keine Frage bearbeitet.";
+
+  for (const gebiet of zustand.daten.themengebiete) {
+    const z = zahlen.get(gebiet.id);
+    const block = document.createElement("div");
+    block.className = "part-block";
+
+    const kopf = document.createElement("div");
+    kopf.className = "part-head";
+    const h3 = document.createElement("h3");
+    h3.textContent = gebiet.titel;
+    const span = document.createElement("span");
+    span.textContent = `${z.bearbeitet}/${z.gesamt}${z.faellig ? ` · ${z.faellig} fällig` : ""}`;
+    kopf.append(h3, span);
+    block.appendChild(kopf);
+
+    const raster = document.createElement("div");
+    raster.className = "grid";
+    const fragen = zustand.daten.fragen.filter((f) => f.themengebiet === gebiet.id);
+    for (const [i, frage] of fragen.entries()) {
+      const stand = fragenstand(frage.id);
+      const kachel = document.createElement("button");
+      kachel.type = "button";
+      kachel.className = "tile";
+      if (stand.versuche) {
+        if (stand.letztesUrteil === "richtig") kachel.classList.add("good");
+        else if (stand.letztesUrteil === "teilweise") kachel.classList.add("mid");
+        else kachel.classList.add("bad");
+      }
+      kachel.innerHTML = "<b></b><small></small>";
+      kachel.querySelector("b").textContent = String(i + 1);
+      kachel.querySelector("small").textContent = stand.versuche
+        ? `S${stand.stufe}`
+        : "neu";
+      kachel.title = frage.titel || frage.frage;
+      kachel.addEventListener("click", () => {
+        zustand.aktuell = frage;
+        loesungOeffnen();
+      });
+      raster.appendChild(kachel);
+    }
+    block.appendChild(raster);
+    behaelter.appendChild(block);
+  }
+
+  krumeSetzen("Fortschritt");
+  schirmZeigen("screen-fortschritt");
+}
+
+/* ---------- Nachschlagen ---------- */
+
+function nachschlagenZeigen() {
+  krumeSetzen("Nachschlagen");
+  schirmZeigen("screen-nachschlagen");
+  $("suche").focus();
+  suchen();
+}
+
+function suchen() {
+  const begriff = $("suche").value.trim().toLowerCase();
+  const behaelter = $("such-treffer");
+  behaelter.innerHTML = "";
+
+  if (begriff.length < 2) {
+    $("such-zahl").textContent = "Mindestens zwei Zeichen eingeben.";
+    return;
+  }
+
+  const treffer = zustand.daten.fragen.filter((f) => {
+    const heuhaufen = [
+      f.frage,
+      f.titel || "",
+      f.sachverhalt || "",
+      f.musterloesung.einleitung || "",
+      ...f.musterloesung.bloecke.flatMap((b) => [b.titel || "", b.text || "", ...(b.punkte || [])]),
+      ...f.konzepte.map((k) => k.label),
+    ]
+      .join(" ")
+      .toLowerCase();
+    return heuhaufen.includes(begriff);
+  });
+
+  $("such-zahl").textContent =
+    treffer.length === 1 ? "1 Frage gefunden." : `${treffer.length} Fragen gefunden.`;
+
+  for (const frage of treffer.slice(0, 60)) {
+    const zeile = document.createElement("button");
+    zeile.type = "button";
+    zeile.className = "such-zeile";
+    zeile.innerHTML = "<span></span><small></small>";
+    zeile.querySelector("span").textContent = frage.titel || frage.frage;
+    zeile.querySelector("small").textContent = `${gebietTitel(frage.themengebiet)} · ${frage.quellnummer}`;
+    zeile.addEventListener("click", () => {
+      zustand.aktuell = frage;
+      loesungOeffnen();
+    });
+    behaelter.appendChild(zeile);
+  }
+}
+
+/* ---------- Panels ---------- */
+
+function panelOeffnen(id) {
+  $(id).hidden = false;
+  document.body.style.overflow = "hidden";
+}
+
+function panelSchliessen(id) {
+  $(id).hidden = true;
+  document.body.style.overflow = "";
+}
+
+function einstellungenOeffnen() {
+  auswahlBauen(
+    $("strenge-choices"),
+    STRENGEN,
+    einstellungen().strenge || "normal",
+    (id) => {
+      einstellungSetzen("strenge", id);
+      toast(`Strenge: ${STRENGEN.find((s) => s.id === id).titel}`);
+    }
+  );
+  $("speicher-hinweis").textContent = istDauerhaft()
+    ? "Der Lernstand liegt allein in diesem Browser. Vor einem Gerätewechsel ausgeben und dort wieder einlesen."
+    : "Dieser Browser erlaubt kein dauerhaftes Speichern. Der Lernstand geht beim Schliessen verloren.";
+  $("quelle-hinweis").textContent = `${zustand.daten.fragen.length} Fragen, Stand ${zustand.daten.stand}. ${zustand.daten.hinweis}`;
+  panelOeffnen("sheet-einstellungen");
+}
+
+/* ---------- Lernstand aus- und einlesen ---------- */
+
+function lernstandAusgeben() {
+  const blob = new Blob([standAusgeben()], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `seerecht-lernstand-${new Date().toISOString().slice(0, 10)}.json`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+  toast("Lernstand ausgegeben.");
+}
+
+function importDateiLesen(datei) {
+  const leser = new FileReader();
+  leser.onload = () => {
+    try {
+      const anzahl = standEinlesen(String(leser.result));
+      toast(`${anzahl} Fragen übernommen.`);
+      panelSchliessen("sheet-einstellungen");
+      startAufbauen();
+    } catch (fehler) {
+      toast(`Einlesen fehlgeschlagen: ${fehler.message}`);
+    }
+  };
+  leser.onerror = () => toast("Die Datei liess sich nicht lesen.");
+  leser.readAsText(datei);
+}
+
+/* ---------- Zurück ---------- */
+
+function zurueck() {
+  const sichtbar = document.querySelector("main .screen:not([hidden])");
+  if (!sichtbar) return startAufbauen();
+
+  switch (sichtbar.id) {
+    case "screen-themen":
+      startAufbauen();
+      break;
+    case "screen-frage":
+      if (confirm("Runde abbrechen und zur Startseite zurückkehren?")) startAufbauen();
+      break;
+    case "screen-ergebnis":
+    case "screen-fortschritt":
+    case "screen-nachschlagen":
+      startAufbauen();
+      break;
+    default:
+      startAufbauen();
+  }
+}
+
+/* ---------- Verdrahtung ---------- */
+
+function verdrahten() {
+  $("btn-start").addEventListener("click", () => {
+    if (zustand.modus === "themengebiet") themenAufbauen();
+    else rundeStarten();
+  });
+  $("btn-themen-start").addEventListener("click", rundeStarten);
+  $("btn-pruefen").addEventListener("click", antwortPruefen);
+  $("btn-aufloesen").addEventListener("click", aufloesen);
+  $("btn-hinweis").addEventListener("click", hinweisGeben);
+  $("btn-weiter").addEventListener("click", weiter);
+  $("btn-ueberspringen").addEventListener("click", ueberspringen);
+  $("btn-loesung").addEventListener("click", loesungOeffnen);
+  $("btn-markieren").addEventListener("click", () => {
+    const jetzt = markierungUmschalten(zustand.aktuell.id);
+    markierungAnzeigen();
+    toast(jetzt ? "Frage gemerkt." : "Merkung entfernt.");
+  });
+
+  $("btn-zurueck").addEventListener("click", zurueck);
+  $("btn-fortschritt").addEventListener("click", fortschrittZeigen);
+  $("btn-fortschritt-2").addEventListener("click", fortschrittZeigen);
+  $("btn-fortschritt-zurueck").addEventListener("click", startAufbauen);
+  $("btn-nachschlagen").addEventListener("click", nachschlagenZeigen);
+  $("btn-einstellungen").addEventListener("click", einstellungenOeffnen);
+  $("btn-nochmal").addEventListener("click", rundeStarten);
+  $("btn-zum-start").addEventListener("click", startAufbauen);
+
+  $("suche").addEventListener("input", suchen);
+
+  $("btn-export").addEventListener("click", lernstandAusgeben);
+  $("btn-import").addEventListener("click", () => $("import-datei").click());
+  $("import-datei").addEventListener("change", (e) => {
+    if (e.target.files && e.target.files[0]) importDateiLesen(e.target.files[0]);
+    e.target.value = "";
+  });
+  $("btn-reset").addEventListener("click", () => {
+    if (confirm("Den gesamten Lernstand unwiderruflich löschen?")) {
+      standLoeschen();
+      toast("Lernstand gelöscht.");
+      panelSchliessen("sheet-einstellungen");
+      startAufbauen();
+    }
+  });
+
+  for (const el of document.querySelectorAll("[data-schliessen]")) {
+    el.addEventListener("click", () => {
+      const panel = el.closest(".sheet-wrap");
+      if (panel) panelSchliessen(panel.id);
+    });
+  }
+
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") {
+      for (const panel of document.querySelectorAll(".sheet-wrap:not([hidden])")) {
+        panelSchliessen(panel.id);
+      }
+    }
+    if ((e.ctrlKey || e.metaKey) && e.key === "Enter") {
+      const frageSichtbar = !$("screen-frage").hidden;
+      if (!frageSichtbar) return;
+      if ($("rueckmeldung").hidden) antwortPruefen();
+      else weiter();
+    }
+  });
+}
+
+/* ---------- Start ---------- */
+
+async function starten() {
+  // In der gebündelten Einzeldatei stehen die Fragen bereits in der Seite.
+  // Nur wenn sie fehlen, wird die Datei nachgeladen. So läuft die Anwendung
+  // auch beim direkten Öffnen über file:// ohne Server.
+  if (globalThis.SSS_FRAGEN) {
+    zustand.daten = globalThis.SSS_FRAGEN;
+  } else {
+    try {
+      const antwort = await fetch(APP.datenpfad, { cache: "no-cache" });
+      if (!antwort.ok) throw new Error(`HTTP ${antwort.status}`);
+      zustand.daten = await antwort.json();
+    } catch (fehler) {
+      document.getElementById("inhalt").innerHTML =
+        '<p class="lede">Die Fragendatei liess sich nicht laden. Bitte die Seite neu laden.</p>';
+      console.error(fehler);
+      return;
+    }
+  }
+
+  for (const frage of zustand.daten.fragen) {
+    zustand.fragenNachId.set(frage.id, frage);
+  }
+
+  verdrahten();
+  startAufbauen();
+
+  if ("serviceWorker" in navigator && location.protocol.startsWith("http")) {
+    window.addEventListener("load", () => {
+      navigator.serviceWorker.register("sw.js").catch(() => {
+        /* Offlinebetrieb ist eine Zugabe, kein Muss. */
+      });
+    });
+  }
+}
+
+starten();
+</script>
+</body>
+</html>
